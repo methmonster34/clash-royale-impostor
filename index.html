@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pass & Play Impostor</title>
+  <style>
+    :root{
+      --bg:#0f172a; /* slate-900 */
+      --panel:#111827; /* gray-900 */
+      --text:#e5e7eb; /* gray-200 */
+      --muted:#94a3b8; /* slate-400 */
+      --accent:#22c55e; /* green-500 */
+      --danger:#ef4444; /* red-500 */
+      --btn:#1f2937; /* gray-800 */
+      --btn2:#0ea5e9; /* sky-500 */
+    }
+    *{box-sizing:border-box;font-family:system-ui,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    body{margin:0;background:linear-gradient(180deg,#0b1220,#0f172a);color:var(--text);min-height:100dvh;display:flex;align-items:center;}
+    .wrap{width:100%;max-width:640px;margin:0 auto;padding:20px}
+    .card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    h1{font-size:28px;letter-spacing:.3px;margin:0 0 8px}
+    p.sub{margin:0 0 18px;color:var(--muted)}
+    label{display:block;margin:10px 0 4px;color:var(--muted);font-size:14px}
+    input,textarea,select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:var(--panel);color:var(--text)}
+    textarea{min-height:90px;resize:vertical}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .btn{width:100%;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:var(--btn);color:var(--text);font-weight:600;font-size:16px}
+    .btn.primary{background:var(--btn2);border-color:rgba(14,165,233,.5)}
+    .btn.success{background:var(--accent);color:#052e16;border:none}
+    .btn.danger{background:var(--danger);border:none}
+    .stack{display:flex;flex-direction:column;gap:10px}
+    .center{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px}
+    .big{font-size:44px;font-weight:800;letter-spacing:.6px}
+    .pill{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);font-size:12px;color:var(--muted)}
+    .divider{height:1px;background:rgba(255,255,255,.08);margin:10px 0 0}
+    .muted{color:var(--muted)}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .hidden{display:none}
+    .wordCard{border-radius:24px;border:2px dashed rgba(255,255,255,.2);padding:26px}
+    .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;background:#0b1220;border:1px solid rgba(255,255,255,.12);padding:2px 6px;border-radius:6px;font-size:12px}
+    .footer{opacity:.7;font-size:12px;margin-top:10px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" id="screen-setup">
+      <h1>Pass & Play Impostor</h1>
+      <p class="sub">One phone. Secret word for most players. One <b>IMPOSTOR</b>. Tap to reveal and pass.</p>
+
+      <div class="row">
+        <div>
+          <label>Players</label>
+          <input id="players" type="number" min="3" max="20" value="6" />
+        </div>
+        <div>
+          <label>Impostors</label>
+          <input id="impostors" type="number" min="1" max="3" value="1" />
+        </div>
+      </div>
+
+      <label>Word list (one per line)</label>
+      <textarea id="words">pizza
+astronaut
+watermelon
+volcano
+skateboard
+pyramid
+headphones
+rainbow
+sushi
+football</textarea>
+
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="randomize">Shuffle List</button>
+        <button class="btn primary" id="start">Start Round</button>
+      </div>
+
+      <div class="footer">Tips: Add your own words. Use <span class="kbd">Hide</span> between turns. Keep screen brightness low to avoid peeking.</div>
+    </div>
+
+    <!-- Pass & reveal screen -->
+    <div class="card hidden" id="screen-pass">
+      <div class="center">
+        <div class="pill" id="turnInfo">Player 1 / ?</div>
+        <div class="wordCard center">
+          <div class="big" id="revealText">Tap to reveal</div>
+          <div class="muted" id="hint">Hand the phone to the next player before tapping.</div>
+        </div>
+        <div class="grid2" style="width:100%">
+          <button class="btn" id="hideBtn">Hide</button>
+          <button class="btn success" id="tapBtn">Tap</button>
+        </div>
+        <button class="btn" id="nextBtn" style="width:100%" class="hidden">Next Player</button>
+      </div>
+      <div class="divider"></div>
+      <div class="stack" style="margin-top:10px">
+        <button class="btn" id="endRound">End Round / New Word</button>
+        <button class="btn danger" id="resetAll">Reset Game</button>
+      </div>
+    </div>
+
+    <!-- Summary screen -->
+    <div class="card hidden" id="screen-summary">
+      <div class="center">
+        <div class="pill">Round finished</div>
+        <div id="summaryWord" class="big"></div>
+        <div id="summaryList" class="muted"></div>
+        <button class="btn primary" id="playAgain">Play Again</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- State ---
+    const el = id => document.getElementById(id);
+    const screens = {
+      setup: el('screen-setup'),
+      pass: el('screen-pass'),
+      summary: el('screen-summary')
+    };
+
+    let state = {
+      players: 6,
+      impostors: 1,
+      word: 'pizza',
+      words: [],
+      assignments: [], // array of 'WORD' | 'IMPOSTOR'
+      turn: 0,
+      revealed: false,
+      history: [] // {player, role}
+    };
+
+    function show(name){
+      Object.values(screens).forEach(s=>s.classList.add('hidden'));
+      screens[name].classList.remove('hidden');
+    }
+
+    function readSetup(){
+      state.players = Math.max(3, Math.min(20, parseInt(el('players').value || '6')));
+      state.impostors = Math.max(1, Math.min(3, parseInt(el('impostors').value || '1')));
+      const raw = el('words').value.split(/\n+/).map(w=>w.trim()).filter(Boolean);
+      state.words = raw.length? raw : ['pizza'];
+    }
+
+    function pickWord(){
+      state.word = state.words[Math.floor(Math.random()*state.words.length)];
+    }
+
+    function assignRoles(){
+      const arr = Array(state.players).fill('WORD');
+      // place impostors
+      let idxs = [];
+      while (idxs.length < Math.min(state.impostors, state.players-1)){
+        const r = Math.floor(Math.random()*state.players);
+        if(!idxs.includes(r)) idxs.push(r);
+      }
+      idxs.forEach(i=>arr[i]='IMPOSTOR');
+      state.assignments = arr;
+      state.turn = 0;
+      state.revealed = false;
+      state.history = [];
+    }
+
+    function updatePassScreen(){
+      el('turnInfo').textContent = `Player ${state.turn+1} / ${state.players}`;
+      el('revealText').textContent = state.revealed
+        ? (state.assignments[state.turn]==='IMPOSTOR' ? 'IMPOSTOR' : state.word)
+        : 'Tap to reveal';
+      el('revealText').style.color = state.revealed && state.assignments[state.turn]==='IMPOSTOR' ? 'var(--danger)' : 'var(--text)';
+      el('hint').textContent = state.revealed ? 'Tap Next Player and pass the phone.' : 'Hand the phone to this player before tapping.';
+      el('nextBtn').classList.toggle('hidden', !state.revealed);
+    }
+
+    function nextTurn(){
+      // record
+      const role = state.assignments[state.turn];
+      state.history.push({player: state.turn+1, role});
+      state.turn++;
+      state.revealed = false;
+      if(state.turn >= state.players){
+        // round over
+        show('summary');
+        el('summaryWord').textContent = `Word: ${state.word}`;
+        const parts = state.history.map(h=>`P${h.player}: ${h.role==='IMPOSTOR'?'IMPOSTOR':'Word'}`).join(' \u2022 ');
+        el('summaryList').textContent = parts;
+        return;
+      }
+      updatePassScreen();
+    }
+
+    // --- Handlers ---
+    el('randomize').onclick = () => {
+      const lines = el('words').value.split(/\n+/).map(w=>w.trim()).filter(Boolean);
+      for(let i=lines.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [lines[i],lines[j]] = [lines[j],lines[i]];
+      }
+      el('words').value = lines.join('\n');
+    };
+
+    el('start').onclick = () => {
+      readSetup();
+      pickWord();
+      assignRoles();
+      show('pass');
+      updatePassScreen();
+    };
+
+    el('tapBtn').onclick = () => {
+      if(!state.revealed){
+        state.revealed = true;
+        updatePassScreen();
+      }
+    };
+
+    el('nextBtn').onclick = nextTurn;
+
+    // Quick hide to avoid peeking
+    el('hideBtn').onclick = () => {
+      state.revealed = false;
+      updatePassScreen();
+    };
+
+    // End round early (new word, new assignments)
+    el('endRound').onclick = () => {
+      pickWord();
+      assignRoles();
+      updatePassScreen();
+    };
+
+    // Reset everything to setup
+    el('resetAll').onclick = () => {
+      show('setup');
+    };
+
+    el('playAgain').onclick = () => {
+      // Keep same settings & word list, just start fresh with new random word
+      pickWord();
+      assignRoles();
+      show('pass');
+      updatePassScreen();
+    };
+
+    // Save/restore simple persistence (optional)
+    window.addEventListener('beforeunload', () => {
+      localStorage.setItem('pp_words', el('words').value);
+    });
+    window.addEventListener('load', () => {
+      const saved = localStorage.getItem('pp_words');
+      if(saved){ el('words').value = saved; }
+    });
+  </script>
+</body>
+</html>
