@@ -94,8 +94,10 @@
         <div id="summaryWord" class="big"></div>
         <div id="summaryList" class="muted"></div>
         <div class="stack" style="width:100%;max-width:420px">
-          <button class="btn" id="showImpostors">Show Impostors</button>
+          <div id="revealHint" class="muted">Tap to reveal impostors</div>
           <div id="impostorReveal" class="muted hidden"></div>
+          <button class="btn primary" id="playAgain">Play Again</button>
+        </div>
           <button class="btn primary" id="playAgain">Play Again</button>
         </div>
       </div>
@@ -119,8 +121,8 @@
       'Baby Dragon','Inferno Dragon','Electro Dragon','Skeleton Dragons','Phoenix',
       'Mega Minion','Minion Horde','Flying Machine',
       'Golem','Lava Hound','Graveyard','Miner','Goblin Barrel','Goblin Drill','Elixir Golem','Electro Giant',
-      'Three Musketeers','Elixir Collector',
-      'Archer Queen','Skeleton King','Golden Knight','Mighty Miner'
+      'Three Musketeers','Elixir Collector','Spirit Empress', 'Berserker', 'Goblin Curse', 'Goblin Machine', 'Void', 'Vines', 'Goblin Demolisher', 'Suspicious Bush', 'Rune Giant'
+      'Archer Queen','Skeleton King','Golden Knight','Mighty Miner', 'Little Prince', 'Goblinstein'
     ];
 
     // --- State ---
@@ -141,10 +143,12 @@
       const clash = state.mode === 'clash';
       el('title').textContent = clash ? 'Clash Imposter' : 'Custom Word Imposter';
       el('wordsLabel').textContent = clash ? 'Clash Royale cards (auto-filled)' : 'Word list (one per line)';
-      el('words').disabled = clash; // Clash list is fixed; switch to custom to edit
-      if(clash){
-        el('words').value = CLASH_CARDS.join('\n');
-      }
+      el('words').disabled = clash;
+      // Hide the list entirely in Clash mode
+      el('wordsLabel').style.display = clash ? 'none' : '';
+      el('words').style.display = clash ? 'none' : '';
+      if(clash){ el('words').value = CLASH_CARDS.join('
+'); }
     }
 
     el('modeClash').onclick = ()=>{
@@ -158,7 +162,9 @@
       el('modeCustom').classList.add('active');
       el('modeClash').classList.remove('active');
       el('words').disabled=false;
-      if(!el('words').value.trim()) el('words').value = 'pizza\nvolcano\nrainbow';
+      if(!el('words').value.trim()) el('words').value = 'pizza
+volcano
+rainbow';
       applyModeUI();
     };
 
@@ -172,7 +178,8 @@
       state.impostors = imp;
       el('impostors').max = String(state.players);
       el('impostors').value = String(state.impostors);
-      const raw = (state.mode==='clash' ? CLASH_CARDS : el('words').value.split(/\n+/).map(w=>w.trim()).filter(Boolean));
+      const raw = (state.mode==='clash' ? CLASH_CARDS : el('words').value.split(/
++/).map(w=>w.trim()).filter(Boolean));
       state.words = raw.length? raw : ['pizza'];
     }
     el('players').addEventListener('input', ()=>{ // keep max impostors = players
@@ -220,7 +227,7 @@
         // round over
         show('summary');
         el('summaryWord').textContent = `Word: ${state.word}`;
-        const parts = state.history.map(h=>`P${h.player}: ${h.role==='IMPOSTOR'?'IMPOSTOR':'Word'}`).join(' \u2022 ');
+        const parts = state.history.map(h=>`P${h.player}: ${h.role==='IMPOSTOR'?'IMPOSTOR':'Word'}`).join(' • ');
         el('summaryList').textContent = parts;
         el('impostorReveal').classList.add('hidden');
         el('impostorReveal').textContent = '';
@@ -231,10 +238,12 @@
 
     // --- Handlers ---
     el('randomize').onclick = () => {
-      const lines = (state.mode==='clash'?[...CLASH_CARDS]: el('words').value.split(/\n+/).map(w=>w.trim()).filter(Boolean));
+      const lines = (state.mode==='clash'?[...CLASH_CARDS]: el('words').value.split(/
++/).map(w=>w.trim()).filter(Boolean));
       for(let i=lines.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [lines[i],lines[j]]=[lines[j],lines[i]]; }
       if(state.mode==='clash') alert('Clash list shuffled for this round.');
-      else el('words').value = lines.join('\n');
+      else el('words').value = lines.join('
+');
     };
 
     el('start').onclick = () => { readSetup(); pickWord(); assignRoles(); show('pass'); updatePassScreen(); };
@@ -253,15 +262,22 @@
     el('resetAll').onclick = () => { show('setup'); };
 
     el('playAgain').onclick = () => { pickWord(); assignRoles(); show('pass'); updatePassScreen(); };
-    el('showImpostors').onclick = () => {
+    // Reveal impostors by tapping the summary area (word or hint)
+    function revealImpostors(){
       const list = state.history.filter(h=>h.role==='IMPOSTOR').map(h=>`Player ${h.player}`).join(', ');
+      el('impostorReveal').textContent = list? `Impostors: ${list}` : 'No impostors? (Check settings)';
+      el('impostorReveal').classList.remove('hidden');
+      el('revealHint').classList.add('hidden');
+    }
+    el('summaryWord').onclick = revealImpostors;
+    el('revealHint').onclick = revealImpostors;
       el('impostorReveal').textContent = list? `Impostors: ${list}` : 'No impostors? (Check settings)';
       el('impostorReveal').classList.remove('hidden');
     };
 
     // Initialize UI
-    window.addEventListener('load', ()=>{
-      el('words').value = CLASH_CARDS.join('\n');
+    window.addEventListener('load', ()=>{ el('words').value = CLASH_CARDS.join('
+'); applyModeUI(); });
       applyModeUI();
     });
   </script>
