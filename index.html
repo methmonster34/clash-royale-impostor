@@ -3,49 +3,51 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Clash Imposter / Custom Word Imposter</title>
+  <title>Clash Royale Imposter</title>
   <style>
-    :root{
-      --bg:#0f172a; --panel:#111827; --text:#e5e7eb; --muted:#94a3b8;
-      --accent:#22c55e; --danger:#ef4444; --btn:#1f2937; --link:#38bdf8;
-    }
+    :root{ --bg:#0f172a; --panel:#0b1220; --text:#e5e7eb; --muted:#94a3b8; --accent:#22c55e; --danger:#ef4444; --primary:#0ea5e9; }
     *{box-sizing:border-box;font-family:system-ui,Segoe UI,Roboto,Inter,Arial,sans-serif}
-    body{margin:0;background:linear-gradient(180deg,#0b1220,#0f172a);color:var(--text);min-height:100dvh;display:flex;align-items:center}
-    .wrap{width:100%;max-width:720px;margin:0 auto;padding:20px}
+    body{margin:0;min-height:100dvh;background:linear-gradient(180deg,#0a0f1c,#0f172a);color:var(--text);display:flex;align-items:center}
+    .wrap{width:100%;max-width:760px;margin:0 auto;padding:20px}
     .card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
-    h1{font-size:28px;margin:0 0 8px}
-    p.sub{margin:0 0 18px;color:var(--muted)}
-    label{display:block;margin:10px 0 4px;color:var(--muted);font-size:14px}
-    input,textarea,select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:var(--panel);color:var(--text)}
-    textarea{min-height:110px;resize:vertical}
+    h1{margin:0 0 10px;font-size:28px}
+    p.sub{margin:0 0 16px;color:var(--muted)}
+    .modebar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+    .modebtn{padding:10px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(56,189,248,.1);color:#c7f9ff;font-weight:700}
+    .modebtn.primary{background:#38bdf8;color:#031d2c}
+    .modebtn.disabled{opacity:.5;cursor:not-allowed}
+    label{display:block;margin:8px 0 4px;color:var(--muted);font-size:14px}
+    input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0e1526;color:var(--text)}
     .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .btn{width:100%;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:var(--btn);color:var(--text);font-weight:700;font-size:16px}
-    .btn.primary{background:#0ea5e9;border-color:rgba(14,165,233,.5)}
+    .btn{width:100%;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:#152235;color:var(--text);font-weight:800;font-size:16px}
+    .btn.primary{background:var(--primary);border-color:rgba(14,165,233,.5)}
     .btn.success{background:var(--accent);color:#052e16;border:none}
     .btn.danger{background:var(--danger);border:none}
-    .stack{display:flex;flex-direction:column;gap:10px}
-    .center{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px}
-    .big{font-size:42px;font-weight:800}
+    .center{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px}
     .pill{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);font-size:12px;color:var(--muted)}
-    .divider{height:1px;background:rgba(255,255,255,.08);margin:10px 0}
-    .muted{color:var(--muted)}
+    .divider{height:1px;background:rgba(255,255,255,.08);margin:12px 0}
     .hidden{display:none}
-    .wordCard{border-radius:24px;border:2px dashed rgba(255,255,255,.2);padding:26px;min-height:120px}
-    .mode-switch{display:flex;gap:10px;flex-wrap:wrap}
-    .mode-btn{padding:10px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(56,189,248,.1);color:#c7f9ff;font-weight:700;cursor:pointer}
-    .mode-btn.active{background:#38bdf8;color:#032230}
+    .wordStage{display:grid;grid-template-columns:1fr;gap:16px;width:100%}
+    .wordCard{border-radius:24px;border:2px dashed rgba(255,255,255,.15);padding:26px;min-height:200px;display:flex;align-items:center;justify-content:center;position:relative}
+    .wordText{font-size:46px;font-weight:800;letter-spacing:.4px}
+    /* Reserved zone for future PNG images */
+    .imageSlot{position:absolute;inset:auto 16px 16px auto;width:140px;height:140px;border-radius:16px;border:1px dashed rgba(255,255,255,.14);opacity:.25}
+    .hint{color:var(--muted);font-size:14px;margin-top:-6px}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <!-- Setup Screen -->
+    <!-- MODE BAR (buttons present; only default mode is active) -->
+    <div class="modebar">
+      <button class="modebtn primary" id="modeClash">Clash Royale Imposter</button>
+      <button class="modebtn disabled" id="modeDark">Clash Royale in the Dark</button>
+      <button class="modebtn disabled" id="modeCustom">Custom Word Imposter</button>
+    </div>
+
+    <!-- SETUP SCREEN -->
     <div class="card" id="screen-setup">
-      <div class="mode-switch">
-        <button class="mode-btn active" id="modeClash">Clash Imposter</button>
-        <button class="mode-btn" id="modeCustom">Custom Word Imposter</button>
-      </div>
-      <h1 id="title">Clash Imposter</h1>
-      <p class="sub">One phone. Most players see the same word. Some see <b>IMPOSTOR</b>. Tap to reveal → tap again for next player.</p>
+      <h1>Clash Royale Imposter</h1>
+      <p class="sub">Default mode is active. Add players and impostors, then start. The word list is hidden (internal). Extra space is reserved for future card images.</p>
 
       <div class="row">
         <div>
@@ -53,64 +55,62 @@
           <input id="players" type="number" min="3" max="20" value="6" />
         </div>
         <div>
-          <label>Impostors (max = players)</label>
+          <label>Impostors (≤ players)</label>
           <input id="impostors" type="number" min="1" value="1" />
         </div>
       </div>
 
-      <label id="wordsLabel">Word list</label>
-      <textarea id="words"></textarea>
-
       <div class="row" style="margin-top:12px">
-        <button class="btn" id="randomize">Shuffle List</button>
-        <button class="btn primary" id="start">Start Round</button>
+        <button class="btn primary" id="begin">Begin Round</button>
+        <button class="btn danger" id="resetAllSetup">Reset</button>
       </div>
-
-      <div class="divider"></div>
-      <p class="muted">Tip: In Clash mode the word list auto-fills with **all Clash Royale cards**. Switch to Custom mode to edit your own list.</p>
     </div>
 
-    <!-- Pass & reveal screen -->
+    <!-- PASS & REVEAL SCREEN (single toggle button: Reveal → Next Player) -->
     <div class="card hidden" id="screen-pass">
-      <div class="center">
+      <div class="center" style="width:100%">
         <div class="pill" id="turnInfo">Player 1 / ?</div>
-        <div class="wordCard center">
-          <div class="big" id="revealText">Tap to reveal</div>
-          <div class="muted" id="hint">Hand the phone to this player before tapping.</div>
+        <div class="wordStage">
+          <div class="wordCard">
+            <div class="wordText" id="wordText">Tap to reveal</div>
+            <div class="imageSlot" aria-hidden="true"></div>
+          </div>
+          <div class="hint" id="hint">Hand the phone to this player before tapping.</div>
         </div>
         <button class="btn success" id="toggleBtn" style="width:100%">Reveal</button>
       </div>
-      <div class="divider"></div>
-      <div class="stack">
-        <button class="btn" id="endRound">End Round / New Word</button>
-        <button class="btn danger" id="resetAll">Reset Game</button>
-      </div>
     </div>
 
-    <!-- Summary screen -->
+    <!-- SUMMARY / MOTIVE SCREEN -->
     <div class="card hidden" id="screen-summary">
       <div class="center">
         <div class="pill">Round finished</div>
-        <div id="summaryWord" class="big"></div>
-        <div id="summaryList" class="muted"></div>
-        <div class="stack" style="width:100%;max-width:420px">
-          <div id="revealHint" class="muted">Tap to reveal impostors</div>
-          <div id="impostorReveal" class="muted hidden"></div>
-          <button class="btn primary" id="playAgain">Play Again</button>
-        </div>
-          <button class="btn primary" id="playAgain">Play Again</button>
-        </div>
+        <h1 style="margin:0">How to Play</h1>
+        <p class="sub" style="max-width:640px">
+          Most players saw the same Clash Royale card. Impostors saw <b>IMPOSTOR</b> instead. Discuss clues about the secret card without giving it away. The impostors try to blend in and mislead. When ready, vote on who the impostor(s) are.
+        </p>
+        <button class="btn" id="showImpostors">Reveal Impostors</button>
+        <div id="impostorList" class="sub hidden"></div>
+        <div class="divider"></div>
+        <button class="btn primary" id="playAgain">Play Again</button>
       </div>
     </div>
   </div>
 
   <script>
-    // --- Utilities ---
-    const el = id => document.getElementById(id);
-    const screens = { setup: el('screen-setup'), pass: el('screen-pass'), summary: el('screen-summary') };
-    function show(name){ Object.values(screens).forEach(s=>s.classList.add('hidden')); screens[name].classList.remove('hidden'); }
+    // ==========================
+    // PLACEHOLDER MODULE SECTIONS
+    // ==========================
+    // (No logic yet; just reserved for future code.)
+    const Modules = {
+      ClashRoyaleImposter: {},
+      ClashRoyaleInTheDark: {},
+      CustomWordImposter: {}
+    };
 
-    // --- Clash Royale card list (as of common sets) ---
+    // ==========================
+    // DATA (Hidden Clash list)
+    // ==========================
     const CLASH_CARDS = [
       'Arrows','Zap','Snowball','Rage','Clone','Mirror','Heal Spirit','Fireball','Poison','Rocket','Lightning','Earthquake','Tornado','The Log','Barbarian Barrel','Royal Delivery',
       'Skeletons','Ice Spirit','Fire Spirits','Bats','Spear Goblins','Goblins','Goblin Gang','Guards','Skeleton Army','Wall Breakers',
@@ -125,161 +125,140 @@
       'Archer Queen','Skeleton King','Golden Knight','Mighty Miner','Little Prince','Goblinstein'
     ];
 
-    // --- State ---
+    // ==========================
+    // STATE
+    // ==========================
+    const el = id => document.getElementById(id);
+    const screens = { setup: el('screen-setup'), pass: el('screen-pass'), summary: el('screen-summary') };
+    const show = name => { Object.values(screens).forEach(s=>s.classList.add('hidden')); screens[name].classList.remove('hidden'); };
+
     let state = {
-      mode: 'clash', // 'clash' | 'custom'
       players: 6,
       impostors: 1,
+      assignments: [], // 'WORD' or 'IMPOSTOR'
       word: '',
-      words: [],
-      assignments: [],
       turn: 0,
       revealed: false,
-      history: []
+      history: [] // {player, role}
     };
 
-    // --- Mode switching ---
-    function applyModeUI(){
-      const clash = state.mode === 'clash';
-      el('title').textContent = clash ? 'Clash Imposter' : 'Custom Word Imposter';
-      el('wordsLabel').textContent = clash ? 'Clash Royale cards (auto-filled)' : 'Word list (one per line)';
-      el('words').disabled = clash;
-      // Hide the list entirely in Clash mode
-      el('wordsLabel').style.display = clash ? 'none' : '';
-      el('words').style.display = clash ? 'none' : '';
-      if(clash){ el('words').value = CLASH_CARDS.join('
-'); }
-    }
-
-    el('modeClash').onclick = ()=>{
-      state.mode='clash';
-      el('modeClash').classList.add('active');
-      el('modeCustom').classList.remove('active');
-      applyModeUI();
-    };
-    el('modeCustom').onclick = ()=>{
-      state.mode='custom';
-      el('modeCustom').classList.add('active');
-      el('modeClash').classList.remove('active');
-      el('words').disabled=false;
-      if(!el('words').value.trim()) el('words').value = 'pizza
-volcano
-rainbow';
-      applyModeUI();
-    };
-
-    // --- Setup reading ---
-    function readSetup(){
-      const p = parseInt(el('players').value||'6');
-      state.players = Math.max(3, Math.min(20, p));
-      // impostors cannot exceed players
-      let imp = parseInt(el('impostors').value||'1');
-      imp = Math.max(1, Math.min(state.players, imp));
-      state.impostors = imp;
-      el('impostors').max = String(state.players);
+    // ==========================
+    // LOGIC (Default: Clash Royale Imposter)
+    // ==========================
+    function clampImpostors(){
+      const p = state.players;
+      if(state.impostors < 1) state.impostors = 1;
+      if(state.impostors > p) state.impostors = p;
       el('impostors').value = String(state.impostors);
-      const raw = (state.mode==='clash' ? CLASH_CARDS : el('words').value.split(/
-+/).map(w=>w.trim()).filter(Boolean));
-      state.words = raw.length? raw : ['pizza'];
     }
-    el('players').addEventListener('input', ()=>{ // keep max impostors = players
-      const p = parseInt(el('players').value||'6');
-      el('impostors').max = String(Math.max(1, p));
-      if(parseInt(el('impostors').value||'1')>p) el('impostors').value = String(p);
-    });
 
-    function pickWord(){ state.word = state.words[Math.floor(Math.random()*state.words.length)]; }
+    function readSetup(){
+      state.players = Math.max(3, Math.min(20, parseInt(el('players').value||'6')));
+      state.impostors = parseInt(el('impostors').value||'1');
+      clampImpostors();
+    }
+
+    function randomWord(){
+      state.word = CLASH_CARDS[Math.floor(Math.random()*CLASH_CARDS.length)];
+    }
 
     function assignRoles(){
       const arr = Array(state.players).fill('WORD');
-      let idxs = [];
-      while (idxs.length < Math.min(state.impostors, state.players)){
-        const r = Math.floor(Math.random()*state.players);
-        if(!idxs.includes(r)) idxs.push(r);
+      const impCount = Math.min(state.impostors, state.players);
+      const used = new Set();
+      while(used.size < impCount){
+        used.add(Math.floor(Math.random()*state.players));
       }
-      idxs.forEach(i=>arr[i]='IMPOSTOR');
-      state.assignments = arr; state.turn=0; state.revealed=false; state.history=[];
+      for(const i of used) arr[i] = 'IMPOSTOR';
+      state.assignments = arr;
+      state.turn = 0;
+      state.revealed = false;
+      state.history = [];
     }
 
-    function updatePassScreen(){
+    function updatePassUI(){
       el('turnInfo').textContent = `Player ${state.turn+1} / ${state.players}`;
       if(!state.revealed){
-        el('revealText').textContent = 'Tap to reveal';
-        el('revealText').style.color = 'var(--text)';
+        el('wordText').textContent = 'Tap to reveal';
+        el('wordText').style.color = 'var(--text)';
         el('hint').textContent = 'Hand the phone to this player before tapping.';
         el('toggleBtn').textContent = 'Reveal';
       } else {
-        const role = state.assignments[state.turn]==='IMPOSTOR' ? 'IMPOSTOR' : state.word;
-        el('revealText').textContent = role;
-        el('revealText').style.color = (role==='IMPOSTOR') ? 'var(--danger)' : 'var(--text)';
-        el('hint').textContent = 'Tap Next Player and pass the phone.';
-        el('toggleBtn').textContent = 'Next Player';
+        const role = state.assignments[state.turn] === 'IMPOSTOR' ? 'IMPOSTOR' : state.word;
+        el('wordText').textContent = role;
+        el('wordText').style.color = (role==='IMPOSTOR') ? 'var(--danger)' : 'var(--text)';
+        el('hint').textContent = state.turn === state.players-1 ? 'Last player revealed.' : 'Tap Next Player and pass the phone.';
+        el('toggleBtn').textContent = (state.turn === state.players-1) ? 'Finish Round' : 'Next Player';
       }
     }
 
     function nextTurn(){
       // record
-      const role = state.assignments[state.turn];
-      state.history.push({player: state.turn+1, role});
+      state.history.push({player: state.turn+1, role: state.assignments[state.turn]});
       state.turn++;
       state.revealed = false;
       if(state.turn >= state.players){
-        // round over
+        // Move to summary/motive screen
         show('summary');
-        el('summaryWord').textContent = `Word: ${state.word}`;
-        const parts = state.history.map(h=>`P${h.player}: ${h.role==='IMPOSTOR'?'IMPOSTOR':'Word'}`).join(' • ');
-        el('summaryList').textContent = parts;
-        el('impostorReveal').classList.add('hidden');
-        el('impostorReveal').textContent = '';
+        el('impostorList').classList.add('hidden');
+        el('impostorList').textContent = '';
         return;
       }
-      updatePassScreen();
+      updatePassUI();
     }
 
-    // --- Handlers ---
-    el('randomize').onclick = () => {
-      const lines = (state.mode==='clash'?[...CLASH_CARDS]: el('words').value.split(/
-+/).map(w=>w.trim()).filter(Boolean));
-      for(let i=lines.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [lines[i],lines[j]]=[lines[j],lines[i]]; }
-      if(state.mode==='clash') alert('Clash list shuffled for this round.');
-      else el('words').value = lines.join('
-');
+    // ==========================
+    // EVENTS
+    // ==========================
+    el('players').addEventListener('input', ()=>{
+      state.players = Math.max(3, Math.min(20, parseInt(el('players').value||'6')));
+      clampImpostors();
+    });
+    el('impostors').addEventListener('input', ()=>{
+      state.impostors = parseInt(el('impostors').value||'1');
+      clampImpostors();
+    });
+
+    el('begin').onclick = () => {
+      readSetup();
+      randomWord();
+      assignRoles();
+      show('pass');
+      updatePassUI();
     };
 
-    el('start').onclick = () => { readSetup(); pickWord(); assignRoles(); show('pass'); updatePassScreen(); };
+    el('resetAllSetup').onclick = () => {
+      el('players').value = '6';
+      el('impostors').value = '1';
+    };
 
-    // Single toggle button: Reveal -> Next Player
+    // Single button: Reveal → Next Player / Finish
     el('toggleBtn').onclick = () => {
       if(!state.revealed){
-        state.revealed = true; // show word/IMPOSTOR
-        updatePassScreen();
+        state.revealed = true;
+        updatePassUI();
+        if(state.turn === state.players-1){
+          // Last player: immediately go to summary after showing (as requested)
+          // If you want an extra tap later, move this into the else branch below.
+          setTimeout(()=>{ nextTurn(); }, 350);
+        }
       } else {
-        nextTurn(); // hide & advance
+        nextTurn();
       }
     };
 
-    el('endRound').onclick = () => { pickWord(); assignRoles(); updatePassScreen(); };
-    el('resetAll').onclick = () => { show('setup'); };
-
-    el('playAgain').onclick = () => { pickWord(); assignRoles(); show('pass'); updatePassScreen(); };
-    // Reveal impostors by tapping the summary area (word or hint)
-    function revealImpostors(){
+    el('showImpostors').onclick = () => {
       const list = state.history.filter(h=>h.role==='IMPOSTOR').map(h=>`Player ${h.player}`).join(', ');
-      el('impostorReveal').textContent = list? `Impostors: ${list}` : 'No impostors? (Check settings)';
-      el('impostorReveal').classList.remove('hidden');
-      el('revealHint').classList.add('hidden');
-    }
-    el('summaryWord').onclick = revealImpostors;
-    el('revealHint').onclick = revealImpostors;
-      el('impostorReveal').textContent = list? `Impostors: ${list}` : 'No impostors? (Check settings)';
-      el('impostorReveal').classList.remove('hidden');
+      el('impostorList').textContent = list ? (`Impostors: ${list}`) : 'No impostors recorded.';
+      el('impostorList').classList.remove('hidden');
     };
 
-    // Initialize UI
-    window.addEventListener('load', ()=>{ el('words').value = CLASH_CARDS.join('
-'); applyModeUI(); });
-      applyModeUI();
-    });
+    el('playAgain').onclick = () => {
+      show('setup');
+    };
+
+    // NOTE: Mode buttons for future modules are intentionally non-functional here
+    // to satisfy the requirement: create sections, but no code yet.
   </script>
 </body>
 </html>
