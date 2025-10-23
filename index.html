@@ -30,24 +30,21 @@
     .wordStage{display:grid;grid-template-columns:1fr;gap:16px;width:100%}
     .wordCard{border-radius:24px;border:2px dashed rgba(255,255,255,.15);padding:26px;min-height:200px;display:flex;align-items:center;justify-content:center;position:relative}
     .wordText{font-size:46px;font-weight:800;letter-spacing:.4px}
-    /* Reserved zone for future PNG images */
     .imageSlot{position:absolute;inset:auto 16px 16px auto;width:140px;height:140px;border-radius:16px;border:1px dashed rgba(255,255,255,.14);opacity:.25}
     .hint{color:var(--muted);font-size:14px;margin-top:-6px}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <!-- MODE BAR (buttons present; only default mode is active) -->
     <div class="modebar">
       <button class="modebtn primary" id="modeClash">Clash Royale Imposter</button>
       <button class="modebtn disabled" id="modeDark">Clash Royale in the Dark</button>
       <button class="modebtn disabled" id="modeCustom">Custom Word Imposter</button>
     </div>
 
-    <!-- SETUP SCREEN -->
     <div class="card" id="screen-setup">
       <h1>Clash Royale Imposter</h1>
-      <p class="sub">Default mode is active. Add players and impostors, then start. The word list is hidden (internal). Extra space is reserved for future card images.</p>
+      <p class="sub">Add players and impostors, then start. The word list is hidden. Extra space is reserved for card images.</p>
 
       <div class="row">
         <div>
@@ -66,7 +63,6 @@
       </div>
     </div>
 
-    <!-- PASS & REVEAL SCREEN (single toggle button: Reveal → Next Player) -->
     <div class="card hidden" id="screen-pass">
       <div class="center" style="width:100%">
         <div class="pill" id="turnInfo">Player 1 / ?</div>
@@ -81,7 +77,6 @@
       </div>
     </div>
 
-    <!-- SUMMARY / MOTIVE SCREEN -->
     <div class="card hidden" id="screen-summary">
       <div class="center">
         <div class="pill">Round finished</div>
@@ -98,19 +93,6 @@
   </div>
 
   <script>
-    // ==========================
-    // PLACEHOLDER MODULE SECTIONS
-    // ==========================
-    // (No logic yet; just reserved for future code.)
-    const Modules = {
-      ClashRoyaleImposter: {},
-      ClashRoyaleInTheDark: {},
-      CustomWordImposter: {}
-    };
-
-    // ==========================
-    // DATA (Hidden Clash list)
-    // ==========================
     const CLASH_CARDS = [
       'Arrows','Zap','Snowball','Rage','Clone','Mirror','Heal Spirit','Fireball','Poison','Rocket','Lightning','Earthquake','Tornado','The Log','Barbarian Barrel','Royal Delivery',
       'Skeletons','Ice Spirit','Fire Spirits','Bats','Spear Goblins','Goblins','Goblin Gang','Guards','Skeleton Army','Wall Breakers',
@@ -125,140 +107,31 @@
       'Archer Queen','Skeleton King','Golden Knight','Mighty Miner','Little Prince','Goblinstein'
     ];
 
-    // ==========================
-    // STATE
-    // ==========================
     const el = id => document.getElementById(id);
-    const screens = { setup: el('screen-setup'), pass: el('screen-pass'), summary: el('screen-summary') };
-    const show = name => { Object.values(screens).forEach(s=>s.classList.add('hidden')); screens[name].classList.remove('hidden'); };
+    const screens = {setup:el('screen-setup'),pass:el('screen-pass'),summary:el('screen-summary')};
+    const show = name => {Object.values(screens).forEach(s=>s.classList.add('hidden'));screens[name].classList.remove('hidden');};
 
-    let state = {
-      players: 6,
-      impostors: 1,
-      assignments: [], // 'WORD' or 'IMPOSTOR'
-      word: '',
-      turn: 0,
-      revealed: false,
-      history: [] // {player, role}
-    };
+    let state={players:6,impostors:1,assignments:[],word:'',turn:0,revealed:false,history:[]};
 
-    // ==========================
-    // LOGIC (Default: Clash Royale Imposter)
-    // ==========================
-    function clampImpostors(){
-      const p = state.players;
-      if(state.impostors < 1) state.impostors = 1;
-      if(state.impostors > p) state.impostors = p;
-      el('impostors').value = String(state.impostors);
-    }
+    function clampImpostors(){const p=state.players;if(state.impostors<1)state.impostors=1;if(state.impostors>p)state.impostors=p;el('impostors').value=String(state.impostors);}
+    function readSetup(){state.players=Math.max(3,Math.min(20,parseInt(el('players').value||'6')));state.impostors=parseInt(el('impostors').value||'1');clampImpostors();}
+    function randomWord(){state.word=CLASH_CARDS[Math.floor(Math.random()*CLASH_CARDS.length)];}
+    function assignRoles(){const arr=Array(state.players).fill('WORD');const impCount=Math.min(state.impostors,state.players);const used=new Set();while(used.size<impCount){used.add(Math.floor(Math.random()*state.players));}for(const i of used)arr[i]='IMPOSTOR';state.assignments=arr;state.turn=0;state.revealed=false;state.history=[];}
 
-    function readSetup(){
-      state.players = Math.max(3, Math.min(20, parseInt(el('players').value||'6')));
-      state.impostors = parseInt(el('impostors').value||'1');
-      clampImpostors();
-    }
+    function updatePassUI(){el('turnInfo').textContent=`Player ${state.turn+1} / ${state.players}`;if(!state.revealed){el('wordText').textContent='Tap to reveal';el('wordText').style.color='var(--text)';el('hint').textContent='Hand the phone to this player before tapping.';el('toggleBtn').textContent='Reveal';}else{const role=state.assignments[state.turn]==='IMPOSTOR'?'IMPOSTOR':state.word;el('wordText').textContent=role;el('wordText').style.color=(role==='IMPOSTOR')?'var(--danger)':'var(--text)';el('hint').textContent=state.turn===state.players-1?'Last player revealed. Tap again to finish.':'Tap Next Player and pass the phone.';el('toggleBtn').textContent=(state.turn===state.players-1)?'Finish Round':'Next Player';}}
 
-    function randomWord(){
-      state.word = CLASH_CARDS[Math.floor(Math.random()*CLASH_CARDS.length)];
-    }
+    function nextTurn(){state.history.push({player:state.turn+1,role:state.assignments[state.turn]});state.turn++;state.revealed=false;if(state.turn>=state.players){show('summary');el('impostorList').classList.add('hidden');el('impostorList').textContent='';return;}updatePassUI();}
 
-    function assignRoles(){
-      const arr = Array(state.players).fill('WORD');
-      const impCount = Math.min(state.impostors, state.players);
-      const used = new Set();
-      while(used.size < impCount){
-        used.add(Math.floor(Math.random()*state.players));
-      }
-      for(const i of used) arr[i] = 'IMPOSTOR';
-      state.assignments = arr;
-      state.turn = 0;
-      state.revealed = false;
-      state.history = [];
-    }
+    el('players').addEventListener('input',()=>{state.players=Math.max(3,Math.min(20,parseInt(el('players').value||'6')));clampImpostors();});
+    el('impostors').addEventListener('input',()=>{state.impostors=parseInt(el('impostors').value||'1');clampImpostors();});
 
-    function updatePassUI(){
-      el('turnInfo').textContent = `Player ${state.turn+1} / ${state.players}`;
-      if(!state.revealed){
-        el('wordText').textContent = 'Tap to reveal';
-        el('wordText').style.color = 'var(--text)';
-        el('hint').textContent = 'Hand the phone to this player before tapping.';
-        el('toggleBtn').textContent = 'Reveal';
-      } else {
-        const role = state.assignments[state.turn] === 'IMPOSTOR' ? 'IMPOSTOR' : state.word;
-        el('wordText').textContent = role;
-        el('wordText').style.color = (role==='IMPOSTOR') ? 'var(--danger)' : 'var(--text)';
-        el('hint').textContent = state.turn === state.players-1 ? 'Last player revealed.' : 'Tap Next Player and pass the phone.';
-        el('toggleBtn').textContent = (state.turn === state.players-1) ? 'Finish Round' : 'Next Player';
-      }
-    }
+    el('begin').onclick=()=>{readSetup();randomWord();assignRoles();show('pass');updatePassUI();};
+    el('resetAllSetup').onclick=()=>{el('players').value='6';el('impostors').value='1';};
 
-    function nextTurn(){
-      // record
-      state.history.push({player: state.turn+1, role: state.assignments[state.turn]});
-      state.turn++;
-      state.revealed = false;
-      if(state.turn >= state.players){
-        // Move to summary/motive screen
-        show('summary');
-        el('impostorList').classList.add('hidden');
-        el('impostorList').textContent = '';
-        return;
-      }
-      updatePassUI();
-    }
+    el('toggleBtn').onclick=()=>{if(!state.revealed){state.revealed=true;updatePassUI();}else{if(state.turn===state.players-1){nextTurn();}else{nextTurn();}}};
 
-    // ==========================
-    // EVENTS
-    // ==========================
-    el('players').addEventListener('input', ()=>{
-      state.players = Math.max(3, Math.min(20, parseInt(el('players').value||'6')));
-      clampImpostors();
-    });
-    el('impostors').addEventListener('input', ()=>{
-      state.impostors = parseInt(el('impostors').value||'1');
-      clampImpostors();
-    });
-
-    el('begin').onclick = () => {
-      readSetup();
-      randomWord();
-      assignRoles();
-      show('pass');
-      updatePassUI();
-    };
-
-    el('resetAllSetup').onclick = () => {
-      el('players').value = '6';
-      el('impostors').value = '1';
-    };
-
-    // Single button: Reveal → Next Player / Finish
-    el('toggleBtn').onclick = () => {
-      if(!state.revealed){
-        state.revealed = true;
-        updatePassUI();
-        if(state.turn === state.players-1){
-          // Last player: immediately go to summary after showing (as requested)
-          // If you want an extra tap later, move this into the else branch below.
-          setTimeout(()=>{ nextTurn(); }, 350);
-        }
-      } else {
-        nextTurn();
-      }
-    };
-
-    el('showImpostors').onclick = () => {
-      const list = state.history.filter(h=>h.role==='IMPOSTOR').map(h=>`Player ${h.player}`).join(', ');
-      el('impostorList').textContent = list ? (`Impostors: ${list}`) : 'No impostors recorded.';
-      el('impostorList').classList.remove('hidden');
-    };
-
-    el('playAgain').onclick = () => {
-      show('setup');
-    };
-
-    // NOTE: Mode buttons for future modules are intentionally non-functional here
-    // to satisfy the requirement: create sections, but no code yet.
+    el('showImpostors').onclick=()=>{const list=state.history.filter(h=>h.role==='IMPOSTOR').map(h=>`Player ${h.player}`).join(', ');el('impostorList').textContent=list?`Impostors: ${list}`:'No impostors recorded.';el('impostorList').classList.remove('hidden');};
+    el('playAgain').onclick=()=>{show('setup');};
   </script>
 </body>
 </html>
