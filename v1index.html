@@ -28,9 +28,19 @@
     .divider{height:1px;background:rgba(255,255,255,.08);margin:12px 0}
     .hidden{display:none}
     .wordStage{display:grid;grid-template-columns:1fr;gap:16px;width:100%}
-    .wordCard{border-radius:24px;border:2px dashed rgba(255,255,255,.15);padding:26px;min-height:200px;display:flex;align-items:center;justify-content:center;position:relative}
-    .wordText{font-size:46px;font-weight:800;letter-spacing:.4px}
-    .imageSlot{position:absolute;inset:auto 16px 16px auto;width:140px;height:140px;border-radius:16px;border:1px dashed rgba(255,255,255,.14);opacity:.25}
+
+    /* Bigger card to hold image on top and word underneath */
+    .wordCard{
+      border-radius:24px;border:2px dashed rgba(255,255,255,.15);
+      padding:20px 20px 26px;min-height:380px;
+      display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:14px
+    }
+    .wordText{font-size:40px;font-weight:800;letter-spacing:.4px;text-align:center;word-break:break-word;max-width:100%}
+    .imageSlot{
+      width:100%;max-width:480px;aspect-ratio:1/1;
+      display:flex;align-items:center;justify-content:center;
+      border-radius:18px;border:1px dashed rgba(255,255,255,.14);background:rgba(255,255,255,.02)
+    }
     .hint{color:var(--muted);font-size:14px;margin-top:-6px}
   </style>
 </head>
@@ -68,8 +78,12 @@
         <div class="pill" id="turnInfo">Player 1 / ?</div>
         <div class="wordStage">
           <div class="wordCard">
+            <!-- IMAGE ON TOP -->
+            <div class="imageSlot">
+              <img id="cardImg" alt="" style="max-width:100%;max-height:100%;object-fit:contain;display:none"/>
+            </div>
+            <!-- WORD UNDER -->
             <div class="wordText" id="wordText">Tap to reveal</div>
-            <div class="imageSlot" aria-hidden="true"></div>
           </div>
           <div class="hint" id="hint">Hand the phone to this player before tapping.</div>
         </div>
@@ -107,6 +121,38 @@
       'Archer Queen','Skeleton King','Golden Knight','Mighty Miner','Little Prince','Goblinstein'
     ];
 
+    /* ---------- PNG IMAGE SUPPORT (lowercase, no spaces) ---------- */
+    // If you split images across multiple folders, list them here in priority order:
+    const IMAGE_FOLDERS = ['images', 'images2'];
+
+    // Convert card name to filename: lowercase + remove all non-letters/numbers
+    function filenameForCard(name){
+      return name.toLowerCase().replace(/[^a-z0-9]/g,'') + '.png';
+    }
+
+    // Try to load from images/, then images2/. If first 404s, fall back.
+    function setCardImage(name){
+      const img = document.getElementById('cardImg');
+      const file = filenameForCard(name);
+      const paths = IMAGE_FOLDERS.map(f => `${f}/${file}`);
+
+      img.style.display = 'none';
+      img.onload = () => { img.style.display = 'block'; };
+      img.onerror = null;
+
+      let i = 0;
+      function tryNext(){
+        if(i >= paths.length){
+          img.src = ''; img.style.display = 'none';
+          return;
+        }
+        img.onerror = () => { i++; tryNext(); };
+        img.src = paths[i];
+      }
+      tryNext();
+    }
+    /* -------------------------------------------------------------- */
+
     const el = id => document.getElementById(id);
     const screens = {setup:el('screen-setup'),pass:el('screen-pass'),summary:el('screen-summary')};
     const show = name => {Object.values(screens).forEach(s=>s.classList.add('hidden'));screens[name].classList.remove('hidden');};
@@ -118,9 +164,44 @@
     function randomWord(){state.word=CLASH_CARDS[Math.floor(Math.random()*CLASH_CARDS.length)];}
     function assignRoles(){const arr=Array(state.players).fill('WORD');const impCount=Math.min(state.impostors,state.players);const used=new Set();while(used.size<impCount){used.add(Math.floor(Math.random()*state.players));}for(const i of used)arr[i]='IMPOSTOR';state.assignments=arr;state.turn=0;state.revealed=false;state.history=[];}
 
-    function updatePassUI(){el('turnInfo').textContent=`Player ${state.turn+1} / ${state.players}`;if(!state.revealed){el('wordText').textContent='Tap to reveal';el('wordText').style.color='var(--text)';el('hint').textContent='Hand the phone to this player before tapping.';el('toggleBtn').textContent='Reveal';}else{const role=state.assignments[state.turn]==='IMPOSTOR'?'IMPOSTOR':state.word;el('wordText').textContent=role;el('wordText').style.color=(role==='IMPOSTOR')?'var(--danger)':'var(--text)';el('hint').textContent=state.turn===state.players-1?'Last player revealed. Tap again to finish.':'Tap Next Player and pass the phone.';el('toggleBtn').textContent=(state.turn===state.players-1)?'Finish Round':'Next Player';}}
+    function updatePassUI(){
+      el('turnInfo').textContent=`Player ${state.turn+1} / ${state.players}`;
+      const img = document.getElementById('cardImg');
 
-    function nextTurn(){state.history.push({player:state.turn+1,role:state.assignments[state.turn]});state.turn++;state.revealed=false;if(state.turn>=state.players){show('summary');el('impostorList').classList.add('hidden');el('impostorList').textContent='';return;}updatePassUI();}
+      if(!state.revealed){
+        el('wordText').textContent='Tap to reveal';
+        el('wordText').style.color='var(--text)';
+        el('hint').textContent='Hand the phone to this player before tapping.';
+        el('toggleBtn').textContent='Reveal';
+        img.src=''; img.style.display='none';
+      }else{
+        const isImp = state.assignments[state.turn]==='IMPOSTOR';
+        const role = isImp ? 'IMPOSTOR' : state.word;
+        el('wordText').textContent=role;
+        el('wordText').style.color=isImp?'var(--danger)':'var(--text)';
+        el('hint').textContent=state.turn===state.players-1?'Last player revealed. Tap again to finish.':'Tap Next Player and pass the phone.';
+        el('toggleBtn').textContent=(state.turn===state.players-1)?'Finish Round':'Next Player';
+
+        if(!isImp){
+          setCardImage(state.word);     // <-- loads images/minipekka.png, falls back to images2/ if needed
+        } else {
+          img.src=''; img.style.display='none';
+        }
+      }
+    }
+
+    function nextTurn(){
+      state.history.push({player:state.turn+1,role:state.assignments[state.turn]});
+      state.turn++;
+      state.revealed=false;
+      if(state.turn>=state.players){
+        show('summary');
+        el('impostorList').classList.add('hidden');
+        el('impostorList').textContent='';
+        return;
+      }
+      updatePassUI();
+    }
 
     el('players').addEventListener('input',()=>{state.players=Math.max(3,Math.min(20,parseInt(el('players').value||'6')));clampImpostors();});
     el('impostors').addEventListener('input',()=>{state.impostors=parseInt(el('impostors').value||'1');clampImpostors();});
@@ -128,12 +209,11 @@
     el('begin').onclick=()=>{readSetup();randomWord();assignRoles();show('pass');updatePassUI();};
     el('resetAllSetup').onclick=()=>{el('players').value='6';el('impostors').value='1';};
 
-    el('toggleBtn').onclick=()=>{if(!state.revealed){state.revealed=true;updatePassUI();}else{if(state.turn===state.players-1){nextTurn();}else{nextTurn();}}};
+    el('toggleBtn').onclick=()=>{if(!state.revealed){state.revealed=true;updatePassUI();}else{nextTurn();}};
 
     el('showImpostors').onclick=()=>{const list=state.history.filter(h=>h.role==='IMPOSTOR').map(h=>`Player ${h.player}`).join(', ');el('impostorList').textContent=list?`Impostors: ${list}`:'No impostors recorded.';el('impostorList').classList.remove('hidden');};
     el('playAgain').onclick=()=>{show('setup');};
   </script>
 </body>
 </html>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2021683559156386"
-     crossorigin="anonymous"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2021683559156386" crossorigin="anonymous"></script>
