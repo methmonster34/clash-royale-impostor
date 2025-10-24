@@ -4,75 +4,47 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Clash Royale Imposter</title>
+  <link rel="preconnect" href="https://raw.githubusercontent.com" />
   <style>
-    :root {
-      --bg: #0f172a;
-      --panel: #0b1220;
-      --text: #e5e7eb;
-      --muted: #94a3b8;
-      --accent: #22c55e;
-      --danger: #ef4444;
-      --primary: #0ea5e9;
-    }
-    * { box-sizing: border-box; font-family: system-ui, Segoe UI, Roboto, Inter, Arial, sans-serif }
-    body { margin: 0; min-height: 100vh; background: linear-gradient(180deg, #0a0f1c, #0f172a); color: var(--text); display: flex; align-items: center }
-    .wrap { width: 100%; max-width: 760px; margin: 0 auto; padding: 20px }
-    .card { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 20px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,.35) }
-    h1 { margin: 0 0 10px; font-size: 28px }
-    p.sub { margin: 0 0 16px; color: var(--muted) }
-    .modebar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px }
-    .modebtn { padding: 10px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.12); background: rgba(56,189,248,.1); color: #c7f9ff; font-weight: 700 }
-    .modebtn.primary { background: #38bdf8; color: #031d2c }
-    .modebtn.disabled { opacity: .5; cursor: not-allowed }
-    label { display: block; margin: 8px 0 4px; color: var(--muted); font-size: 14px }
-    input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,.12); background: #0e1526; color: var(--text) }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px }
-    .btn { width: 100%; padding: 14px 16px; border-radius: 14px; border: 1px solid rgba(255,255,255,.1); background: #152235; color: var(--text); font-weight: 800; font-size: 16px }
-    .btn.primary { background: var(--primary); border-color: rgba(14,165,233,.5) }
-    .btn.success { background: var(--accent); color: #052e16; border: none }
-    .btn.danger { background: var(--danger); border: none }
-    .center { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px }
-    .pill { padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); font-size: 12px; color: var(--muted) }
-    .divider { height: 1px; background: rgba(255,255,255,.08); margin: 12px 0 }
-    .hidden { display: none }
-    .wordStage { display: grid; grid-template-columns: 1fr; gap: 16px; width: 100% }
+    :root { --bg:#0f172a; --panel:#0b1220; --text:#e5e7eb; --muted:#94a3b8; --accent:#22c55e; --danger:#ef4444; --primary:#0ea5e9; }
+    *{box-sizing:border-box;font-family:system-ui,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    body{margin:0;min-height:100vh;background:linear-gradient(180deg,#0a0f1c,#0f172a);color:var(--text);display:flex;align-items:center}
+    .wrap{width:100%;max-width:760px;margin:0 auto;padding:20px}
+    .card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    h1{margin:0 0 10px;font-size:28px}
+    p.sub{margin:0 0 16px;color:var(--muted)}
+    .modebar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+    .modebtn{padding:10px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(56,189,248,.1);color:#c7f9ff;font-weight:700}
+    .modebtn.primary{background:#38bdf8;color:#031d2c}
+    .modebtn.disabled{opacity:.5;cursor:not-allowed}
+    label{display:block;margin:8px 0 4px;color:var(--muted);font-size:14px}
+    input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0e1526;color:var(--text)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .btn{width:100%;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:#152235;color:var(--text);font-weight:800;font-size:16px;cursor:pointer}
+    .btn.primary{background:var(--primary);border-color:rgba(14,165,233,.5)}
+    .btn.success{background:var(--accent);color:#052e16;border:none}
+    .btn.danger{background:var(--danger);border:none}
+    .center{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px}
+    .pill{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);font-size:12px;color:var(--muted)}
+    .divider{height:1px;background:rgba(255,255,255,.08);margin:12px 0}
+    .hidden{display:none}
+    .wordStage{display:grid;grid-template-columns:1fr;gap:16px;width:100%}
 
-    .wordCard {
-      border-radius: 24px;
-      border: 2px dashed rgba(255,255,255,.15);
-      padding: 16px 16px 20px;
-      min-height: 300px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      gap: 12px;
-    }
+    .wordCard{border-radius:24px;border:2px dashed rgba(255,255,255,.15);padding:16px 16px 20px;min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:12px}
+    .wordText{font-size:36px;font-weight:800;letter-spacing:.4px;text-align:center;word-break:break-word;max-width:100%}
 
-    .wordText { font-size: 40px; font-weight: 800; letter-spacing: .4px; text-align: center; word-break: break-word; max-width: 100%; }
+    .imageSlot{width:100%;max-width:320px;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;border-radius:18px;border:1px dashed rgba(255,255,255,.14);background:rgba(255,255,255,.02)}
+    #cardImg{max-width:100%;max-height:100%;object-fit:contain;display:none}
 
-    .imageSlot {
-      width: 100%;
-      max-width: 320px;
-      aspect-ratio: 1/1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 18px;
-      border: 1px dashed rgba(255,255,255,.14);
-      background: rgba(255,255,255,.02);
-    }
-
-    .hint { color: var(--muted); font-size: 14px; margin-top: -6px }
+    .hint{color:var(--muted);font-size:14px;margin-top:-6px}
   </style>
-<link rel="preconnect" href="https://raw.githubusercontent.com" />
 </head>
 <body>
   <div class="wrap">
     <div class="modebar">
-      <button class="modebtn primary" id="modeClash">Clash Royale Imposter</button>
-      <button class="modebtn disabled" id="modeDark">Clash Royale in the Dark</button>
-      <button class="modebtn disabled" id="modeCustom">Custom Word Imposter</button>
+      <button class="modebtn primary" id="modeClash" type="button">Clash Royale Imposter</button>
+      <button class="modebtn disabled" id="modeDark" type="button">Clash Royale in the Dark</button>
+      <button class="modebtn disabled" id="modeCustom" type="button">Custom Word Imposter</button>
     </div>
 
     <div class="card" id="screen-setup">
@@ -81,21 +53,18 @@
 
       <div class="row">
         <div>
-          <label>Players</label>
+          <label for="players">Players</label>
           <input id="players" type="number" min="3" max="20" value="6" />
         </div>
         <div>
-          <label>Impostors (≤ players)</label>
+          <label for="impostors">Impostors (≤ players)</label>
           <input id="impostors" type="number" min="1" value="1" />
         </div>
       </div>
 
       <div class="row" style="margin-top:12px">
-        <button class="btn primary" id="begin">Begin Round</button>
-        <button class="btn danger" id="resetAllSetup">Reset</button>
-      </div>
-
-      <!-- Moved OUT of <script>: developer test block -->
+        <button class="btn primary" id="begin" type="button">Begin Round</button>
+        <button class="btn danger" id="resetAllSetup" type="button">Reset</button>
       </div>
     </div>
 
@@ -105,13 +74,13 @@
         <div class="wordStage">
           <div class="wordCard">
             <div class="imageSlot">
-              <img id="cardImg" alt="" style="max-width:100%;max-height:100%;object-fit:contain;display:none"/>
+              <img id="cardImg" alt="Card" />
             </div>
             <div class="wordText" id="wordText">Tap to reveal</div>
           </div>
           <div class="hint" id="hint">Hand the phone to this player before tapping.</div>
         </div>
-        <button class="btn success" id="toggleBtn" style="width:100%">Reveal</button>
+        <button class="btn success" id="toggleBtn" type="button" style="width:100%">Reveal</button>
       </div>
     </div>
 
@@ -122,15 +91,16 @@
         <p class="sub" style="max-width:640px">
           Most players saw the same Clash Royale card. Impostors saw <b>IMPOSTOR</b> instead. Discuss clues about the secret card without giving it away.
         </p>
-        <button class="btn" id="showImpostors">Reveal Impostors</button>
+        <button class="btn" id="showImpostors" type="button">Reveal Impostors</button>
         <div id="impostorList" class="sub hidden"></div>
         <div class="divider"></div>
-        <button class="btn primary" id="playAgain">Play Again</button>
+        <button class="btn primary" id="playAgain" type="button">Play Again</button>
       </div>
     </div>
   </div>
 
   <script>
+    // ---------------- Data -----------------
     const CLASH_CARDS = [
       'Arrows','Zap','Snowball','Rage','Clone','Mirror','Heal Spirit','Fireball','Poison','Rocket','Lightning','Earthquake','Tornado','The Log','Barbarian Barrel','Royal Delivery',
       'Skeletons','Ice Spirit','Fire Spirits','Bats','Spear Goblins','Goblins','Goblin Gang','Guards','Skeleton Army','Wall Breakers',
@@ -145,135 +115,130 @@
       'Archer Queen','Skeleton King','Golden Knight','Mighty Miner','Little Prince','Goblinstein'
     ];
 
-    // Use jsDelivr CDN instead of raw.githubusercontent
     const RAW_BASE = "https://raw.githubusercontent.com/methmonster34/clash-royale-impostor/main";
-    const IMAGE_FOLDERS = [
-      "Clash Royale Imposter Images",
-      "Clash Royale Imposter Images 2"
-    ];
+    const IMAGE_FOLDERS = ["Clash Royale Imposter Images", "Clash Royale Imposter Images 2"]; // keep both
 
-    function filenameForCard(name) {
-      return name.toLowerCase().replace(/[^a-z0-9]/g, '') + ".png";
-    }
-
-    function setCardImage(name) {
-      const img = document.getElementById("cardImg");
-      const file = filenameForCard(name);
-
-      const urls = IMAGE_FOLDERS.map(folder =>
-        `${RAW_BASE}/${encodeURIComponent(folder)}/${file}`
-      );
-
-      img.style.display = "none";
-      let i = 0;
-
-      function tryNext() {
-        if (i >= urls.length) {
-          console.warn("Image not found in either folder:", file, urls);
-          img.src = "";
-          img.style.display = "none";
-          return;
-        }
-        const url = urls[i];
-        img.onerror = () => { i++; tryNext(); };
-        img.onload  = () => { img.style.display = "block"; };
-        img.loading = "eager";
-        img.decoding = "async";
-        img.src = url; // allow cache
-      }
-
-      tryNext();
-    }
-
-    // Prefetch the image to warm the cache before reveal
-    function prefetchCardImage(name) {
-      const file = filenameForCard(name);
-      const urls = IMAGE_FOLDERS.map(folder => `${RAW_BASE}/${encodeURIComponent(folder)}/${file}`);
-      urls.forEach(u => { const i = new Image(); i.referrerPolicy = "no-referrer"; i.src = u; });
-    }
-
-      tryNext();
-    }
-
+    // --------------- Helpers ----------------
     const el = id => document.getElementById(id);
     const screens = { setup: el("screen-setup"), pass: el("screen-pass"), summary: el("screen-summary") };
     const show = name => { Object.values(screens).forEach(s => s.classList.add("hidden")); screens[name].classList.remove("hidden"); };
 
-    let state = { players: 6, impostors: 1, assignments: [], word: "", turn: 0, revealed: false, history: [] };
+    function filenameForCard(name){ return name.toLowerCase().replace(/[^a-z0-9]/g,'') + '.png'; }
 
-    function clampImpostors() {
-      const p = state.players;
-      if (state.impostors < 1) state.impostors = 1;
-      if (state.impostors > p) state.impostors = p;
-      el("impostors").value = String(state.impostors);
+    function setCardImage(name){
+      const img = el('cardImg');
+      const file = filenameForCard(name);
+      const urls = IMAGE_FOLDERS.map(folder => `${RAW_BASE}/${encodeURIComponent(folder)}/${file}`);
+
+      img.style.display = 'none';
+      img.loading = 'eager';
+      img.decoding = 'async';
+
+      let i = 0;
+      function tryNext(){
+        if(i >= urls.length){ img.removeAttribute('src'); img.style.display='none'; return; }
+        const url = urls[i];
+        img.onerror = () => { i++; tryNext(); };
+        img.onload  = () => { img.style.display = 'block'; };
+        img.src = url; // allow cache for speed
+      }
+      tryNext();
     }
 
-    function readSetup() {
-      state.players = Math.max(3, Math.min(20, parseInt(el("players").value || "6")));
-      state.impostors = parseInt(el("impostors").value || "1");
+    function prefetchCardImage(name){
+      const file = filenameForCard(name);
+      IMAGE_FOLDERS.forEach(folder => {
+        const i = new Image();
+        i.decoding = 'async';
+        i.src = `${RAW_BASE}/${encodeURIComponent(folder)}/${file}`;
+      });
+    }
+
+    // --------------- State ------------------
+    let state = { players:6, impostors:1, assignments:[], word:"", turn:0, revealed:false, history:[] };
+
+    function clampImpostors(){
+      const p = state.players;
+      if(state.impostors < 1) state.impostors = 1;
+      if(state.impostors > p) state.impostors = p;
+      el('impostors').value = String(state.impostors);
+    }
+
+    function readSetup(){
+      state.players = Math.max(3, Math.min(20, parseInt(el('players').value || '6')));
+      state.impostors = parseInt(el('impostors').value || '1');
       clampImpostors();
     }
 
-    function randomWord() { state.word = CLASH_CARDS[Math.floor(Math.random() * CLASH_CARDS.length)]; prefetchCardImage(state.word); }
+    function randomWord(){
+      state.word = CLASH_CARDS[Math.floor(Math.random()*CLASH_CARDS.length)];
+      prefetchCardImage(state.word);
+    }
 
-    function assignRoles() {
-      const arr = Array(state.players).fill("WORD");
+    function assignRoles(){
+      const arr = Array(state.players).fill('WORD');
       const impCount = Math.min(state.impostors, state.players);
       const used = new Set();
-      while (used.size < impCount) used.add(Math.floor(Math.random() * state.players));
-      for (const i of used) arr[i] = "IMPOSTOR";
+      while(used.size < impCount) used.add(Math.floor(Math.random()*state.players));
+      for(const i of used) arr[i] = 'IMPOSTOR';
       state.assignments = arr;
       state.turn = 0; state.revealed = false; state.history = [];
     }
 
-    function updatePassUI() {
-      el("turnInfo").textContent = `Player ${state.turn + 1} / ${state.players}`;
-      const img = document.getElementById("cardImg");
+    function updatePassUI(){
+      el('turnInfo').textContent = `Player ${state.turn+1} / ${state.players}`;
+      const img = el('cardImg');
 
-      if (!state.revealed) {
-        el("wordText").textContent = "Tap to reveal";
-        el("wordText").style.color = "var(--text)";
-        el("hint").textContent = "Hand the phone to this player before tapping.";
-        el("toggleBtn").textContent = "Reveal";
-        img.src = ""; img.style.display = "none";
+      if(!state.revealed){
+        el('wordText').textContent = 'Tap to reveal';
+        el('wordText').style.color = 'var(--text)';
+        el('hint').textContent = 'Hand the phone to this player before tapping.';
+        el('toggleBtn').textContent = 'Reveal';
+        img.removeAttribute('src');
+        img.style.display = 'none';
       } else {
-        const isImp = state.assignments[state.turn] === "IMPOSTOR";
-        const role = isImp ? "IMPOSTOR" : state.word;
-        el("wordText").textContent = role;
-        el("wordText").style.color = isImp ? "var(--danger)" : "var(--text)";
-        el("hint").textContent = state.turn === state.players - 1
-          ? "Last player revealed. Tap again to finish."
-          : "Tap Next Player and pass the phone.";
-        el("toggleBtn").textContent = state.turn === state.players - 1 ? "Finish Round" : "Next Player";
-
-        if (!isImp) setCardImage(state.word);
-        else { img.src = ""; img.style.display = "none"; }
+        const isImp = state.assignments[state.turn] === 'IMPOSTOR';
+        const role = isImp ? 'IMPOSTOR' : state.word;
+        el('wordText').textContent = role;
+        el('wordText').style.color = isImp ? 'var(--danger)' : 'var(--text)';
+        el('hint').textContent = state.turn === state.players-1 ? 'Last player revealed. Tap again to finish.' : 'Tap Next Player and pass the phone.';
+        el('toggleBtn').textContent = state.turn === state.players-1 ? 'Finish Round' : 'Next Player';
+        if(!isImp) setCardImage(state.word); else { img.removeAttribute('src'); img.style.display='none'; }
       }
     }
 
-    function nextTurn() {
-      state.history.push({ player: state.turn + 1, role: state.assignments[state.turn] });
+    function nextTurn(){
+      state.history.push({ player: state.turn+1, role: state.assignments[state.turn] });
       state.turn++;
       state.revealed = false;
-      if (state.turn >= state.players) { show("summary"); el("impostorList").classList.add("hidden"); el("impostorList").textContent = ""; return; }
+      if(state.turn >= state.players){
+        show('summary');
+        el('impostorList').classList.add('hidden');
+        el('impostorList').textContent = '';
+        return;
+      }
       updatePassUI();
     }
 
-    // Event bindings
-    el("players").addEventListener("input", () => { state.players = Math.max(3, Math.min(20, parseInt(el("players").value || "6"))); clampImpostors(); });
-    el("impostors").addEventListener("input", () => { state.impostors = parseInt(el("impostors").value || "1"); clampImpostors(); });
+    // -------------- Events ------------------
+    el('players').addEventListener('input', () => {
+      state.players = Math.max(3, Math.min(20, parseInt(el('players').value || '6')));
+      clampImpostors();
+    });
+    el('impostors').addEventListener('input', () => {
+      state.impostors = parseInt(el('impostors').value || '1');
+      clampImpostors();
+    });
 
-    el("begin").onclick = () => { readSetup(); randomWord(); assignRoles(); show("pass"); updatePassUI(); };
-    el("resetAllSetup").onclick = () => { el("players").value = "6"; el("impostors").value = "1"; };
-    el("toggleBtn").onclick = () => { if (!state.revealed) { state.revealed = true; updatePassUI(); } else { nextTurn(); } };
-    el("showImpostors").onclick = () => {
-      const list = state.history.filter(h => h.role === "IMPOSTOR").map(h => `Player ${h.player}`).join(", ");
-      el("impostorList").textContent = list ? `Impostors: ${list}` : "No impostors recorded.";
-      el("impostorList").classList.remove("hidden");
+    el('begin').onclick = () => { readSetup(); randomWord(); assignRoles(); show('pass'); updatePassUI(); };
+    el('resetAllSetup').onclick = () => { el('players').value = '6'; el('impostors').value = '1'; state.players=6; state.impostors=1; };
+    el('toggleBtn').onclick = () => { if(!state.revealed){ state.revealed = true; updatePassUI(); } else { nextTurn(); } };
+    el('showImpostors').onclick = () => {
+      const list = state.history.filter(h => h.role === 'IMPOSTOR').map(h => `Player ${h.player}`).join(', ');
+      el('impostorList').textContent = list ? `Impostors: ${list}` : 'No impostors recorded.';
+      el('impostorList').classList.remove('hidden');
     };
-    el("playAgain").onclick = () => { show("setup"); };
-
-    
+    el('playAgain').onclick = () => { show('setup'); };
   </script>
 </body>
 </html>
