@@ -199,11 +199,16 @@
       state.impostorAlts = Array(state.players).fill(null);
       if(mode === 'dark'){
         // choose alt card for impostors
+        const alts = [];
         for(let i=0;i<state.players;i++){
           if(arr[i] === 'IMPOSTOR'){
-            state.impostorAlts[i] = pickSimilar(state.word, el('darkDifficulty')?.value || 'easy');
+            const alt = pickSimilar(state.word, el('darkDifficulty')?.value || 'easy');
+            state.impostorAlts[i] = alt;
+            alts.push(alt);
           }
         }
+        // prefetch impostor images too
+        alts.forEach(a => prefetchCardImage(a));
       }
       state.turn = 0; state.revealed = false; state.history = [];
     }
@@ -290,7 +295,7 @@
   // -------- Similarity engine (advanced tags) --------
     // Base category sets
     const SPELLS = new Set(['Arrows','Zap','Snowball','Rage','Clone','Mirror','Fireball','Poison','Rocket','Lightning','Earthquake','Tornado','The Log','Barbarian Barrel','Royal Delivery','Heal Spirit']);
-    const BUILDINGS = new Set(['X-Bow','Mortar','Cannon','Bomb Tower','Tesla','Inferno Tower','Furnace','Tombstone','Goblin Cage','Goblin Hut','Barbarian Hut','Elixir Collector','Goblin Drill','Royal Delivery']);
+    const BUILDINGS = new Set(['X-Bow','Mortar','Cannon','Bomb Tower','Tesla','Inferno Tower','Furnace','Tombstone','Goblin Cage','Goblin Hut','Barbarian Hut','Elixir Collector','Goblin Drill']);
 
     // Roles / traits
     const WINCONS = new Set(['Hog Rider','Giant','Goblin Giant','Royal Giant','Balloon','X-Bow','Mortar','Graveyard','Miner','Ram Rider','Battle Ram','Goblin Drill','Elixir Golem','Electro Giant','Golem','Lava Hound','Three Musketeers','Sparky']);
@@ -304,16 +309,16 @@
 
     // Known elixir (partial; others left undefined)
     const ELIXIR = new Map([
-      ['Arrows',3],['Zap',2],['Snowball',2],['Rage',2],['Clone',3],['Mirror',?],['Fireball',4],['Poison',4],['Rocket',6],['Lightning',6],['Earthquake',3],['Tornado',3],['The Log',2],['Barbarian Barrel',2],['Royal Delivery',3],['Heal Spirit',1],
+      ['Arrows',3],['Zap',2],['Snowball',2],['Rage',2],['Clone',3],['Fireball',4],['Poison',4],['Rocket',6],['Lightning',6],['Earthquake',3],['Tornado',3],['The Log',2],['Barbarian Barrel',2],['Royal Delivery',3],['Heal Spirit',1],
       ['Skeletons',1],['Ice Spirit',1],['Fire Spirits',2],['Bats',2],['Spear Goblins',2],['Goblins',2],['Goblin Gang',3],['Guards',3],['Skeleton Army',3],['Wall Breakers',2],
       ['Archers',3],['Knight',3],['Bomber',2],['Ice Golem',2],['Minions',3],['Minion Horde',5],['Dart Goblin',3],['Goblin Cage',4],['Goblin Hut',5],['Barbarian Hut',7],['Barbarians',5],['Royal Recruits',7],['Royal Hogs',5],['Zappies',4],['Rascals',5],
       ['Musketeer',4],['Hunter',4],['Wizard',5],['Ice Wizard',3],['Electro Wizard',5],['Magic Archer',4],['Mother Witch',4],
       ['Valkyrie',4],['Mini P.E.K.K.A',4],['Dark Prince',4],['Prince',5],['Bandit',3],['Battle Ram',4],['Cannon Cart',5],['Ram Rider',5],['Lumberjack',4],['Battle Healer',4],['Fisherman',3],['Monk',5],
-      ['P.E.K.K.A',7],['Giant',5],['Giant Skeleton',6],['Goblin Giant',6],['Royal Giant',6],['Hog Rider',4],['Mega Knight',7],['Sparky',6],['Balloon',5],'X-Bow',6,'Mortar',4,'Cannon',3,'Bomb Tower',4,'Tesla',4,'Inferno Tower',5,'Furnace',4,'Tombstone',3,
+      ['P.E.K.K.A',7],['Giant',5],['Giant Skeleton',6],['Goblin Giant',6],['Royal Giant',6],['Hog Rider',4],['Mega Knight',7],['Sparky',6],['Balloon',5],['X-Bow',6],['Mortar',4],['Cannon',3],['Bomb Tower',4],['Tesla',4],['Inferno Tower',5],['Furnace',4],['Tombstone',3],
       ['Baby Dragon',4],['Inferno Dragon',4],['Electro Dragon',5],['Skeleton Dragons',4],['Phoenix',4],
       ['Mega Minion',3],['Flying Machine',4],
       ['Golem',8],['Lava Hound',7],['Graveyard',5],['Miner',3],['Goblin Barrel',3],['Goblin Drill',4],['Elixir Golem',3],['Electro Giant',8],
-      ['Three Musketeers',9],['Elixir Collector',6],['Royal Delivery',3]
+      ['Three Musketeers',9],['Elixir Collector',6]
     ]);
 
     function cardType(name){ return SPELLS.has(name) ? 'spell' : (BUILDINGS.has(name) ? 'building' : 'troop'); }
@@ -321,10 +326,9 @@
     function targets(name){
       if(cardType(name) === 'spell') return ['ground','air'];
       if(cardType(name) === 'building') return [];
-      const t = [];
-      if(BUILDING_TARGETING.has(name)) t.push('buildings');
-      t.push('ground');
-      if(AIR_TROOPS.has(name)) t.push('air'); else t.push('air'); // troops generally can target air? Not all; keep simple: assume ground troops target ground, air units target both.
+      const t = ['ground'];
+      if (AIR_TROOPS.has(name)) t.push('air');
+      if (BUILDING_TARGETING.has(name)) t.push('buildings');
       return Array.from(new Set(t));
     }
     function roles(name){
