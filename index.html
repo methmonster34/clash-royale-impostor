@@ -147,10 +147,14 @@
       img.style.display = 'none';
       img.loading = 'eager';
       img.decoding = 'async';
+      img.referrerPolicy = 'no-referrer';
 
       let i = 0;
       function tryNext(){
-        if(i >= urls.length){ img.removeAttribute('src'); img.style.display='none'; return; }
+        if(i >= urls.length){
+          console.warn('[image MISS]', file, urls);
+          img.removeAttribute('src'); img.style.display='none'; return;
+        }
         const url = urls[i];
         img.onerror = () => { i++; tryNext(); };
         img.onload  = () => { img.style.display = 'block'; };
@@ -164,12 +168,10 @@
       IMAGE_FOLDERS.forEach(folder => {
         const i = new Image();
         i.decoding = 'async';
+        i.referrerPolicy = 'no-referrer';
         i.src = `${RAW_BASE}/${encodeURIComponent(folder)}/${file}`;
       });
-    }
-
-    // --------------- State ------------------
-    let state = { players:6, impostors:1, assignments:[], word:"", turn:0, revealed:false, history:[], impostorAlts:[] };
+    };
 
     function clampImpostors(){
       const p = state.players;
@@ -403,34 +405,37 @@
       const candidates = CLASH_CARDS.filter(c => c !== base);
       const scored = candidates.map(c => ({ c, s: scoreMatch(base, c) }));
       const byScore = arr => arr.sort((a,b)=>b.s-a.s);
+      const pickTopRandom = (arr) => {
+        if(!arr.length) return undefined;
+        const sorted = byScore(arr.slice());
+        const top = sorted[0].s;
+        const topGroup = sorted.filter(o => o.s === top);
+        const pick = topGroup[Math.floor(Math.random()*topGroup.length)];
+        return pick?.c;
+      };
 
-      // Easy: same type, best score
       if(difficulty==='easy'){
         const sameType = scored.filter(o => meta(o.c).type === meta(base).type);
-        const pool = byScore(sameType);
-        return (pool[0]?.c) || candidates[Math.floor(Math.random()*candidates.length)];
+        const choice = pickTopRandom(sameType);
+        return choice || candidates[Math.floor(Math.random()*candidates.length)];
       }
-      // Medium: same type + prefer same role/towerOnly
       if(difficulty==='medium'){
         const t = meta(base).type;
-        const pool = byScore(scored.filter(o => meta(o.c).type===t))
-          .sort((a,b)=>{
-            const A = meta(a.c), B = meta(b.c), M = meta(base);
-            const aBonus = (A.role===M.role) + (A.towerOnly===M.towerOnly);
-            const bBonus = (B.role===M.role) + (B.towerOnly===M.towerOnly);
-            return bBonus - aBonus;
-          });
-        return (pool[0]?.c) || candidates[Math.floor(Math.random()*candidates.length)];
+        const sameType = scored.filter(o => meta(o.c).type===t);
+        const choice = pickTopRandom(sameType);
+        return choice || candidates[Math.floor(Math.random()*candidates.length)];
       }
-      // Hard: 40% same-type best, else best overall
       if(difficulty==='hard'){
         if(Math.random()<0.4){
-          const sameType = byScore(scored.filter(o => meta(o.c).type===meta(base).type));
-          return (sameType[0]?.c) || candidates[Math.floor(Math.random()*candidates.length)];
+          const sameType = scored.filter(o => meta(o.c).type===meta(base).type);
+          const choice = pickTopRandom(sameType);
+          if(choice) return choice;
         }
-        const all = byScore(scored);
-        return all[0]?.c || candidates[Math.floor(Math.random()*candidates.length)];
+        const choice = pickTopRandom(scored);
+        return choice || candidates[Math.floor(Math.random()*candidates.length)];
       }
+      return candidates[Math.floor(Math.random()*candidates.length)];
+    }
       // Chaos: random different card
       return candidates[Math.floor(Math.random()*candidates.length)];
     }
