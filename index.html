@@ -169,7 +169,7 @@
     }
 
     // --------------- State ------------------
-    let state = { players:6, impostors:1, assignments:[], word:"", turn:0, revealed:false, history:[] };
+    let state = { players:6, impostors:1, assignments:[], word:"", turn:0, revealed:false, history:[], impostorAlts:[] };
 
     function clampImpostors(){
       const p = state.players;
@@ -196,6 +196,15 @@
       while(used.size < impCount) used.add(Math.floor(Math.random()*state.players));
       for(const i of used) arr[i] = 'IMPOSTOR';
       state.assignments = arr;
+      state.impostorAlts = Array(state.players).fill(null);
+      if(mode === 'dark'){
+        // choose alt card for impostors
+        for(let i=0;i<state.players;i++){
+          if(arr[i] === 'IMPOSTOR'){
+            state.impostorAlts[i] = pickSimilar(state.word, el('darkDifficulty')?.value || 'easy');
+          }
+        }
+      }
       state.turn = 0; state.revealed = false; state.history = [];
     }
 
@@ -212,12 +221,25 @@
         img.style.display = 'none';
       } else {
         const isImp = state.assignments[state.turn] === 'IMPOSTOR';
-        const role = isImp ? 'IMPOSTOR' : state.word;
-        el('wordText').textContent = role;
-        el('wordText').style.color = isImp ? 'var(--danger)' : 'var(--text)';
+        let roleText, cardName;
+        if(isImp && mode === 'dark'){
+          cardName = state.impostorAlts[state.turn] || state.word;
+          roleText = cardName; // impostor sees a legit-looking card
+          el('wordText').style.color = 'var(--text)';
+          setCardImage(cardName);
+        } else if(isImp){
+          roleText = 'IMPOSTOR';
+          el('wordText').style.color = 'var(--danger)';
+          img.removeAttribute('src'); img.style.display='none';
+        } else {
+          cardName = state.word;
+          roleText = state.word;
+          el('wordText').style.color = 'var(--text)';
+          setCardImage(cardName);
+        }
+        el('wordText').textContent = roleText;
         el('hint').textContent = state.turn === state.players-1 ? 'Last player revealed. Tap again to finish.' : 'Tap Next Player and pass the phone.';
         el('toggleBtn').textContent = state.turn === state.players-1 ? 'Finish Round' : 'Next Player';
-        if(!isImp) setCardImage(state.word); else { img.removeAttribute('src'); img.style.display='none'; }
       }
     }
 
@@ -253,6 +275,39 @@
       el('impostorList').classList.remove('hidden');
     };
     el('playAgain').onclick = () => { show('setup'); };
+
+    // -------- Mode switching --------
+    function setMode(newMode){
+      mode = newMode;
+      // visual toggle
+      el('modeClash').classList.toggle('primary', mode==='clash');
+      el('modeDark').classList.toggle('primary', mode==='dark');
+      // show difficulty for dark
+      el('darkControls').style.display = mode==='dark' ? 'grid' : 'none';
+    }
+    el('modeClash').onclick = () => setMode('clash');
+    el('modeDark').onclick = () => setMode('dark');
+  // -------- Similarity engine (simple type-based) --------
+    const SPELLS = new Set(['Arrows','Zap','Snowball','Rage','Clone','Mirror','Fireball','Poison','Rocket','Lightning','Earthquake','Tornado','The Log','Barbarian Barrel','Royal Delivery','Heal Spirit']);
+    const BUILDINGS = new Set(['X-Bow','Mortar','Cannon','Bomb Tower','Tesla','Inferno Tower','Furnace','Tombstone','Goblin Cage','Goblin Hut','Barbarian Hut','Elixir Collector','Goblin Drill','Royal Delivery']);
+    function cardType(name){ return SPELLS.has(name) ? 'spell' : (BUILDINGS.has(name) ? 'building' : 'troop'); }
+    function pickSimilar(base, difficulty='easy'){
+      const type = cardType(base);
+      const pool = CLASH_CARDS.filter(c => c !== base && cardType(c) === type);
+      if(difficulty==='easy' || difficulty==='medium'){
+        return pool[Math.floor(Math.random()*pool.length)] || base;
+      }
+      if(difficulty==='hard'){
+        // 40% same type, otherwise random
+        if(Math.random() < 0.4 && pool.length) return pool[Math.floor(Math.random()*pool.length)];
+        const any = CLASH_CARDS.filter(c => c!==base);
+        return any[Math.floor(Math.random()*any.length)] || base;
+      }
+      // chaos: fully random different card
+      const any = CLASH_CARDS.filter(c => c!==base);
+      return any[Math.floor(Math.random()*any.length)] || base;
+    }
+
   </script>
 </body>
 </html>
