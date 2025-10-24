@@ -43,7 +43,7 @@
   <div class="wrap">
     <div class="modebar">
       <button class="modebtn primary" id="modeClash" type="button">Clash Royale Imposter</button>
-      <button class="modebtn disabled" id="modeDark" type="button">Clash Royale in the Dark</button>
+      <button class="modebtn" id="modeDark" type="button">Clash Royale in the Dark</button>
       <button class="modebtn disabled" id="modeCustom" type="button">Custom Word Imposter</button>
     </div>
 
@@ -60,6 +60,19 @@
           <label for="impostors">Impostors (≤ players)</label>
           <input id="impostors" type="number" min="1" value="1" />
         </div>
+      </div>
+
+      <div class="row" id="darkControls" style="margin-top:12px; display:none">
+        <div>
+          <label for="darkDifficulty">Dark Mode Difficulty</label>
+          <select id="darkDifficulty" style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0e1526;color:var(--text)">
+            <option value="easy">Easy (same type)</option>
+            <option value="medium">Medium (same type)</option>
+            <option value="hard">Hard (mostly random)</option>
+            <option value="chaos">Chaos (random)</option>
+          </select>
+        </div>
+        <div></div>
       </div>
 
       <div class="row" style="margin-top:12px">
@@ -121,6 +134,7 @@
     // --------------- Helpers ----------------
     const el = id => document.getElementById(id);
     const screens = { setup: el("screen-setup"), pass: el("screen-pass"), summary: el("screen-summary") };
+    let mode = 'clash'; // 'clash' | 'dark'
     const show = name => { Object.values(screens).forEach(s => s.classList.add("hidden")); screens[name].classList.remove("hidden"); };
 
     function filenameForCard(name){ return name.toLowerCase().replace(/[^a-z0-9]/g,'') + '.png'; }
