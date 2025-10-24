@@ -14,11 +14,11 @@
     h1{margin:0 0 10px;font-size:28px}
     p.sub{margin:0 0 16px;color:var(--muted)}
     .modebar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
-    .modebtn{padding:10px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(56,189,248,.1);color:#c7f9ff;font-weight:700}
+    .modebtn{padding:10px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(56,189,248,.1);color:#c7f9ff;font-weight:700;cursor:pointer}
     .modebtn.primary{background:#38bdf8;color:#031d2c}
     .modebtn.disabled{opacity:.5;cursor:not-allowed}
     label{display:block;margin:8px 0 4px;color:var(--muted);font-size:14px}
-    input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0e1526;color:var(--text)}
+    input, select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0e1526;color:var(--text)}
     .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .btn{width:100%;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:#152235;color:var(--text);font-weight:800;font-size:16px;cursor:pointer}
     .btn.primary{background:var(--primary);border-color:rgba(14,165,233,.5)}
@@ -29,13 +29,10 @@
     .divider{height:1px;background:rgba(255,255,255,.08);margin:12px 0}
     .hidden{display:none}
     .wordStage{display:grid;grid-template-columns:1fr;gap:16px;width:100%}
-
     .wordCard{border-radius:24px;border:2px dashed rgba(255,255,255,.15);padding:16px 16px 20px;min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:12px}
     .wordText{font-size:36px;font-weight:800;letter-spacing:.4px;text-align:center;word-break:break-word;max-width:100%}
-
     .imageSlot{width:100%;max-width:320px;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;border-radius:18px;border:1px dashed rgba(255,255,255,.14);background:rgba(255,255,255,.02)}
     #cardImg{max-width:100%;max-height:100%;object-fit:contain;display:none}
-
     .hint{color:var(--muted);font-size:14px;margin-top:-6px}
   </style>
 </head>
@@ -65,7 +62,7 @@
       <div class="row" id="darkControls" style="margin-top:12px; display:none">
         <div>
           <label for="darkDifficulty">Dark Mode Difficulty</label>
-          <select id="darkDifficulty" style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0e1526;color:var(--text)">
+          <select id="darkDifficulty">
             <option value="easy">Easy (same type)</option>
             <option value="medium">Medium (same type)</option>
             <option value="hard">Hard (mostly random)</option>
@@ -129,7 +126,7 @@
     ];
 
     const RAW_BASE = "https://raw.githubusercontent.com/methmonster34/clash-royale-impostor/main";
-    const IMAGE_FOLDERS = ["Clash Royale Imposter Images", "Clash Royale Imposter Images 2"]; // keep both
+    const IMAGE_FOLDERS = ["Clash Royale Imposter Images", "Clash Royale Imposter Images 2"];
 
     // --------------- Helpers ----------------
     const el = id => document.getElementById(id);
@@ -171,6 +168,18 @@
         i.referrerPolicy = 'no-referrer';
         i.src = `${RAW_BASE}/${encodeURIComponent(folder)}/${file}`;
       });
+    }
+
+    // --------------- State ------------------
+    let state = {
+      players: 6,
+      impostors: 1,
+      assignments: [],
+      word: "",
+      turn: 0,
+      revealed: false,
+      history: [],
+      impostorAlts: []
     };
 
     function clampImpostors(){
@@ -200,7 +209,6 @@
       state.assignments = arr;
       state.impostorAlts = Array(state.players).fill(null);
       if(mode === 'dark'){
-        // choose alt card for impostors
         const alts = [];
         for(let i=0;i<state.players;i++){
           if(arr[i] === 'IMPOSTOR'){
@@ -231,7 +239,7 @@
         let roleText, cardName;
         if(isImp && mode === 'dark'){
           cardName = state.impostorAlts[state.turn] || state.word;
-          roleText = cardName; // impostor sees a legit-looking card
+          roleText = cardName;
           el('wordText').style.color = 'var(--text)';
           setCardImage(cardName);
         } else if(isImp){
@@ -286,43 +294,34 @@
     // -------- Mode switching --------
     function setMode(newMode){
       mode = newMode;
-      // visual toggle
       el('modeClash').classList.toggle('primary', mode==='clash');
       el('modeDark').classList.toggle('primary', mode==='dark');
-      // show difficulty for dark
       el('darkControls').style.display = mode==='dark' ? 'grid' : 'none';
     }
     el('modeClash').onclick = () => setMode('clash');
     el('modeDark').onclick = () => setMode('dark');
-  // -------- Similarity engine (reworked taxonomy) --------
-    // Base partitions — keep simple: type, damage type (for spells/buildings), movement, towerOnly, role (tank/support/damage)
+
+    // -------- Similarity engine (taxonomy + swarm) --------
     const SPELLS = new Set(['Arrows','Zap','Snowball','Rage','Clone','Mirror','Fireball','Poison','Rocket','Lightning','Earthquake','Tornado','The Log','Barbarian Barrel','Royal Delivery','Heal Spirit']);
     const BUILDINGS = new Set(['X-Bow','Mortar','Cannon','Bomb Tower','Tesla','Inferno Tower','Furnace','Tombstone','Goblin Cage','Goblin Hut','Barbarian Hut','Elixir Collector','Goblin Drill']);
 
-    // Damage type for spells
+    // Spells/buildings damage style
     const SPLASH_SPELLS = new Set(['Arrows','Fireball','Poison','Rocket','Lightning','Earthquake','Tornado','The Log','Royal Delivery','Barbarian Barrel','Snowball']);
-    const SINGLE_SPELLS = new Set(['Zap','Rage','Clone','Mirror','Heal Spirit']); // functional/utility treated as single
-
-    // Damage type for buildings
-    const SPLASH_BUILDINGS = new Set(['Bomb Tower','Mortar']); // Mortar = area; Bomb Tower = splash
+    const SINGLE_SPELLS = new Set(['Zap','Rage','Clone','Mirror','Heal Spirit']);
+    const SPLASH_BUILDINGS = new Set(['Bomb Tower','Mortar']);
     const SINGLE_BUILDINGS = new Set(['Cannon','Tesla','Inferno Tower','X-Bow','Goblin Cage']);
-    // Buildings with no direct damage
     const NON_DAMAGE_BUILDINGS = new Set(['Furnace','Tombstone','Goblin Hut','Barbarian Hut','Elixir Collector','Goblin Drill']);
 
-    // Movement (troops)
+    // Movement + swarm
     const AIR_TROOPS = new Set(['Minions','Minion Horde','Baby Dragon','Inferno Dragon','Electro Dragon','Skeleton Dragons','Phoenix','Mega Minion','Flying Machine','Lava Hound','Balloon']);
-    // Troops that deploy >3 units at once → swarm=true
     const SWARM_TROOPS = new Set(['Minion Horde','Bats','Barbarians','Royal Recruits','Royal Hogs','Goblin Gang','Skeleton Army']);
 
-    // Obvious tower-only attackers (buildings-only targeting)
+    // Tower-only style + roles
     const TOWER_ONLY = new Set(['Hog Rider','Giant','Goblin Giant','Royal Giant','Balloon','Battle Ram','Golem','Goblin Drill']);
-
-    // Roles: primary (pick exactly one among tank/support/damage)
     const TANKS = new Set(['Giant','Goblin Giant','Royal Giant','Golem','Electro Giant','P.E.K.K.A','Mega Knight','Giant Skeleton','Lava Hound','Elixir Golem','Rune Giant']);
     const SUPPORT = new Set(['Ice Golem','Ice Wizard','Wizard','Electro Wizard','Magic Archer','Mother Witch','Fisherman','Battle Healer','Monk','Heal Spirit','Tornado','Rage','Mirror','Clone','Royal Delivery','Elixir Collector','Furnace','Goblin Hut','Barbarian Hut','Tombstone','Goblin Cage']);
-    // Everything else defaults to damage
 
-    // Helper maps for newer/custom cards (optional overrides)
+    // Custom overrides (your added cards)
     const CUSTOM_OVERRIDES = new Map([
       ['Spirit Empress', { role:'support' }],
       ['Berserker', { role:'damage' }],
@@ -341,7 +340,6 @@
       const o = CUSTOM_OVERRIDES.get(name); if(o?.type) return o.type;
       return SPELLS.has(name) ? 'spell' : (BUILDINGS.has(name) ? 'building' : 'troop');
     }
-
     function damageType(name){
       const o = CUSTOM_OVERRIDES.get(name); if(o?.dmg !== undefined) return o.dmg; // 'single'|'splash'|null
       const t = cardType(name);
@@ -352,32 +350,25 @@
         if(SINGLE_BUILDINGS.has(name)) return 'single';
         return null;
       }
-      return null; // troops not required here
+      return null;
     }
-
     function movementType(name){
       const t = cardType(name);
       if(t==='building') return 'building';
       if(t==='troop') return AIR_TROOPS.has(name) ? 'air' : 'ground';
-      return null; // spells
+      return null;
     }
-
-    function isSwarm(name){
-      return cardType(name)==='troop' && SWARM_TROOPS.has(name);
-    }
-
+    function isSwarm(name){ return cardType(name)==='troop' && SWARM_TROOPS.has(name); }
     function isTowerOnly(name){
       const o = CUSTOM_OVERRIDES.get(name); if(o?.towerOnly !== undefined) return !!o.towerOnly;
       return TOWER_ONLY.has(name);
     }
-
     function primaryRole(name){
-      const o = CUSTOM_OVERRIDES.get(name); if(o?.role) return o.role; // 'tank'|'support'|'damage'
+      const o = CUSTOM_OVERRIDES.get(name); if(o?.role) return o.role;
       if(TANKS.has(name)) return 'tank';
       if(SUPPORT.has(name)) return 'support';
       return 'damage';
     }
-
     function meta(name){
       return {
         type: cardType(name),
@@ -392,39 +383,41 @@
     function scoreMatch(base, cand){
       const A = meta(base), B = meta(cand);
       let s = 0;
-      if(A.type && B.type && A.type===B.type) s += 4;                 // same type
-      if(A.dmg && B.dmg && A.dmg===B.dmg) s += 2;                      // same damage style
-      if(A.move && B.move && A.move===B.move) s += 2;                  // same movement
-      if(A.towerOnly === B.towerOnly) s += 2;                          // same tower-only behavior
-      if(A.role && B.role && A.role===B.role) s += 3;                  // same primary role
-      if(A.swarm === B.swarm) s += 2;                                   // swarm alignment                  // same primary role
+      if(A.type && B.type && A.type===B.type) s += 4;       // same type
+      if(A.role && B.role && A.role===B.role) s += 3;       // same role
+      if(A.dmg && B.dmg && A.dmg===B.dmg) s += 2;           // same damage style
+      if(A.move && B.move && A.move===B.move) s += 2;       // same movement
+      if(A.towerOnly === B.towerOnly) s += 2;               // same tower-only behavior
+      if(A.swarm === B.swarm) s += 2;                        // swarm alignment
       return s;
+    }
+
+    function pickTopRandom(scoredArr){
+      if(!scoredArr.length) return undefined;
+      const sorted = scoredArr.slice().sort((a,b)=>b.s-a.s);
+      const top = sorted[0].s;
+      const topGroup = sorted.filter(o => o.s === top);
+      const pick = topGroup[Math.floor(Math.random()*topGroup.length)];
+      return pick?.c;
     }
 
     function pickSimilar(base, difficulty='easy'){
       const candidates = CLASH_CARDS.filter(c => c !== base);
       const scored = candidates.map(c => ({ c, s: scoreMatch(base, c) }));
-      const byScore = arr => arr.sort((a,b)=>b.s-a.s);
-      const pickTopRandom = (arr) => {
-        if(!arr.length) return undefined;
-        const sorted = byScore(arr.slice());
-        const top = sorted[0].s;
-        const topGroup = sorted.filter(o => o.s === top);
-        const pick = topGroup[Math.floor(Math.random()*topGroup.length)];
-        return pick?.c;
-      };
 
       if(difficulty==='easy'){
         const sameType = scored.filter(o => meta(o.c).type === meta(base).type);
         const choice = pickTopRandom(sameType);
         return choice || candidates[Math.floor(Math.random()*candidates.length)];
       }
+
       if(difficulty==='medium'){
         const t = meta(base).type;
         const sameType = scored.filter(o => meta(o.c).type===t);
         const choice = pickTopRandom(sameType);
         return choice || candidates[Math.floor(Math.random()*candidates.length)];
       }
+
       if(difficulty==='hard'){
         if(Math.random()<0.4){
           const sameType = scored.filter(o => meta(o.c).type===meta(base).type);
@@ -434,12 +427,10 @@
         const choice = pickTopRandom(scored);
         return choice || candidates[Math.floor(Math.random()*candidates.length)];
       }
-      return candidates[Math.floor(Math.random()*candidates.length)];
-    }
+
       // Chaos: random different card
       return candidates[Math.floor(Math.random()*candidates.length)];
     }
-
   </script>
 </body>
 </html>
