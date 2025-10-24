@@ -40,20 +40,20 @@
     .wordCard {
       border-radius: 24px;
       border: 2px dashed rgba(255,255,255,.15);
-      padding: 20px 20px 26px;
-      min-height: 380px;
+      padding: 16px 16px 20px;
+      min-height: 300px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      gap: 14px;
+      gap: 12px;
     }
 
     .wordText { font-size: 40px; font-weight: 800; letter-spacing: .4px; text-align: center; word-break: break-word; max-width: 100%; }
 
     .imageSlot {
       width: 100%;
-      max-width: 480px;
+      max-width: 320px;
       aspect-ratio: 1/1;
       display: flex;
       align-items: center;
@@ -65,6 +65,7 @@
 
     .hint { color: var(--muted); font-size: 14px; margin-top: -6px }
   </style>
+<link rel="preconnect" href="https://raw.githubusercontent.com" />
 </head>
 <body>
   <div class="wrap">
@@ -95,10 +96,6 @@
       </div>
 
       <!-- Moved OUT of <script>: developer test block -->
-      <div style="margin-top:12px">
-        <input id="testWord" placeholder="Type a card (e.g., Archer Queen)" style="width:100%;padding:10px;border-radius:8px;border:1px solid #334155;background:#0e1526;color:#e5e7eb">
-        <button class="btn" id="testImageBtn">Test Image</button>
-        <div id="imgDebug" style="color:#94a3b8;font-size:12px;margin-top:6px"></div>
       </div>
     </div>
 
@@ -149,7 +146,7 @@
     ];
 
     // Use jsDelivr CDN instead of raw.githubusercontent
-    const CDN_BASE = "https://cdn.jsdelivr.net/gh/methmonster34/clash-royale-impostor@main";
+    const RAW_BASE = "https://raw.githubusercontent.com/methmonster34/clash-royale-impostor/main";
     const IMAGE_FOLDERS = [
       "Clash Royale Imposter Images",
       "Clash Royale Imposter Images 2"
@@ -163,9 +160,8 @@
       const img = document.getElementById("cardImg");
       const file = filenameForCard(name);
 
-      // Build candidate URLs (properly encoding the folder names)
       const urls = IMAGE_FOLDERS.map(folder =>
-        `${CDN_BASE}/${encodeURIComponent(folder)}/${file}`
+        `${RAW_BASE}/${encodeURIComponent(folder)}/${file}`
       );
 
       img.style.display = "none";
@@ -179,11 +175,22 @@
           return;
         }
         const url = urls[i];
-        console.log("[image TRY]", url);
         img.onerror = () => { i++; tryNext(); };
-        img.onload  = () => { console.log("[image OK]", url); img.style.display = "block"; };
-        img.src = url + `?v=${Date.now()}`; // bust cache
+        img.onload  = () => { img.style.display = "block"; };
+        img.loading = "eager";
+        img.decoding = "async";
+        img.src = url; // allow cache
       }
+
+      tryNext();
+    }
+
+    // Prefetch the image to warm the cache before reveal
+    function prefetchCardImage(name) {
+      const file = filenameForCard(name);
+      const urls = IMAGE_FOLDERS.map(folder => `${RAW_BASE}/${encodeURIComponent(folder)}/${file}`);
+      urls.forEach(u => { const i = new Image(); i.referrerPolicy = "no-referrer"; i.src = u; });
+    }
 
       tryNext();
     }
@@ -207,7 +214,7 @@
       clampImpostors();
     }
 
-    function randomWord() { state.word = CLASH_CARDS[Math.floor(Math.random() * CLASH_CARDS.length)]; }
+    function randomWord() { state.word = CLASH_CARDS[Math.floor(Math.random() * CLASH_CARDS.length)]; prefetchCardImage(state.word); }
 
     function assignRoles() {
       const arr = Array(state.players).fill("WORD");
@@ -266,14 +273,7 @@
     };
     el("playAgain").onclick = () => { show("setup"); };
 
-    // Dev test button (was breaking JS when placed inside <script>)
-    el("testImageBtn").onclick = () => {
-      const w = (el("testWord").value || 'Archer Queen');
-      setCardImage(w);
-      el("wordText").textContent = w;
-      state.revealed = true;
-      updatePassUI();
-    };
+    
   </script>
 </body>
 </html>
