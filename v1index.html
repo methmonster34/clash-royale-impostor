@@ -187,6 +187,11 @@ function setCardImage(name) {
 
   tryNext();
 }
+<div style="margin-top:12px">
+  <input id="testWord" placeholder="Type a card (e.g., Archer Queen)" style="width:100%;padding:10px;border-radius:8px;border:1px solid #334155;background:#0e1526;color:#e5e7eb">
+  <button class="btn" onclick="(function(){ const w=document.getElementById('testWord').value||'Archer Queen'; setCardImage(w); document.getElementById('wordText').textContent=w; state.revealed=true; })()">Test Image</button>
+  <div id="imgDebug" style="color:#94a3b8;font-size:12px;margin-top:6px"></div>
+</div>
 
 
     const el = id => document.getElementById(id);
