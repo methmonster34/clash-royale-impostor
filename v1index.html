@@ -117,51 +117,42 @@
       'Archer Queen','Skeleton King','Golden Knight','Mighty Miner','Little Prince','Goblinstein'
     ];
 
-    // --- image loader supports both folders ---
-    const IMG_FOLDERS = ['Clash Royale Imposter Images', 'Clash Royale Imposter Images 2'];
+// Base path to your GitHub raw images
+const REPO_BASE = "https://raw.githubusercontent.com/methmonster34/clash-royale-impostor/refs/heads/main";
+const IMAGE_FOLDERS = [
+  "Clash Royale Imposter Images",
+  "Clash Royale Imposter Images 2"
+];
 
-    function filenameForCard(name){
-      return name.toLowerCase().replace(/[^a-z0-9]/g,'') + '.png';
-    }
+// Convert card name to filename
+function filenameForCard(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '') + '.png';
+}
 
-    function pagesBase(){
-      const host = location.hostname;
-      const parts = location.pathname.split('/').filter(Boolean);
-      if (host.endsWith('github.io') && parts.length > 0) return `/${parts[0]}/`;
-      return '/';
-    }
+// Load image from GitHub raw link
+function setCardImage(name) {
+  const img = document.getElementById('cardImg');
+  const file = filenameForCard(name);
+  const paths = IMAGE_FOLDERS.map(folder => 
+    `${REPO_BASE}/${encodeURIComponent(folder)}/${file}`
+  );
 
-    function pagesUrl(folder, file){
-      const base = pagesBase();
-      const encFolder = encodeURIComponent(folder).replace(/%2F/g,'/');
-      return `${base}${encFolder}/${file}`;
-    }
+  img.style.display = 'none';
+  let i = 0;
 
-    function rawUrl(folder, file){
-      const encFolder = encodeURIComponent(folder).replace(/%2F/g,'/');
-      return `https://raw.githubusercontent.com/methmonster34/clash-royale-impostor/main/${encFolder}/${file}`;
-    }
-
-    function setCardImage(name){
-      const img = document.getElementById('cardImg');
-      const file = filenameForCard(name);
-      const urls = [];
-      for(const folder of IMG_FOLDERS){
-        urls.push(pagesUrl(folder, file));
-        urls.push(rawUrl(folder, file));
-      }
-
-      let i = 0;
+  function tryNext() {
+    if (i >= paths.length) {
+      img.src = '';
       img.style.display = 'none';
-      img.onload = () => { img.style.display = 'block'; };
-      function tryNext(){
-        if(i >= urls.length){ img.src=''; img.style.display='none'; return; }
-        img.onerror = () => { i++; tryNext(); };
-        img.src = urls[i] + '?v=' + Date.now();
-      }
-      tryNext();
+      return;
     }
-    // -------------------------------------------
+    img.onerror = () => { i++; tryNext(); };
+    img.onload = () => { img.style.display = 'block'; };
+    img.src = paths[i];
+  }
+  tryNext();
+}
+
 
     const el = id => document.getElementById(id);
     const screens = {setup:el('screen-setup'),pass:el('screen-pass'),summary:el('screen-summary')};
