@@ -148,35 +148,46 @@
       'Archer Queen','Skeleton King','Golden Knight','Mighty Miner','Little Prince','Goblinstein'
     ];
 
-    const REPO_BASE = "https://cdn.jsdelivr.net/gh/methmonster34/clash-royale-impostor@main";
-    const IMAGE_FOLDERS = [
-      "Clash Royale Imposter Images",
-      "Clash Royale Imposter Images 2"
-    ];
+ // Use jsDelivr CDN instead of raw.githubusercontent
+const CDN_BASE = "https://cdn.jsdelivr.net/gh/methmonster34/clash-royale-impostor@main";
+const IMAGE_FOLDERS = [
+  "Clash Royale Imposter Images",
+  "Clash Royale Imposter Images 2"
+];
 
-    function filenameForCard(name) {
-      return name.toLowerCase().replace(/[^a-z0-9]/g, '') + ".png";
-    }
+function filenameForCard(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '') + ".png";
+}
 
-    function setCardImage(name) {
-      const img = document.getElementById("cardImg");
-      const file = filenameForCard(name);
-      const paths = IMAGE_FOLDERS.map(folder =>
-        `${REPO_BASE}/${encodeURIComponent(folder)}/${file}`
-      );
+function setCardImage(name) {
+  const img = document.getElementById("cardImg");
+  const file = filenameForCard(name);
 
+  // Build candidate URLs (properly encoding the folder names)
+  const urls = IMAGE_FOLDERS.map(folder =>
+    `${CDN_BASE}/${encodeURIComponent(folder)}/${file}`
+  );
+
+  img.style.display = "none";
+  let i = 0;
+
+  function tryNext() {
+    if (i >= urls.length) {
+      console.warn("Image not found in either folder:", file, urls);
+      img.src = "";
       img.style.display = "none";
-      let i = 0;
-
-      function tryNext() {
-        if (i >= paths.length) { img.src = ""; return; }
-        img.onerror = () => { i++; tryNext(); };
-        img.onload = () => { img.style.display = "block"; };
-        img.src = paths[i];
-      }
-
-      tryNext();
+      return;
     }
+    const url = urls[i];
+    console.log("[image TRY]", url);
+    img.onerror = () => { i++; tryNext(); };
+    img.onload  = () => { console.log("[image OK]", url); img.style.display = "block"; };
+    img.src = url + `?v=${Date.now()}`; // bust cache
+  }
+
+  tryNext();
+}
+
 
     const el = id => document.getElementById(id);
     const screens = { setup: el("screen-setup"), pass: el("screen-pass"), summary: el("screen-summary") };
