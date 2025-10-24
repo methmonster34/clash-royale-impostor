@@ -155,7 +155,7 @@
         const url = urls[i];
         img.onerror = () => { i++; tryNext(); };
         img.onload  = () => { img.style.display = 'block'; };
-        img.src = url; // cache OK
+        img.src = url;
       }
       tryNext();
     }
@@ -322,21 +322,51 @@
     const SUPPORT = new Set(['Ice Golem','Ice Wizard','Wizard','Electro Wizard','Magic Archer','Mother Witch','Fisherman','Battle Healer','Monk','Heal Spirit','Tornado','Rage','Mirror','Clone','Royal Delivery','Elixir Collector','Furnace','Goblin Hut','Barbarian Hut','Tombstone','Goblin Cage']);
     const DISTRACTIONS = new Set(['Skeletons','Ice Spirit','Fire Spirits','Bats','Spear Goblins','Goblins','Goblin Gang','Guards','Ice Golem','Tombstone']);
 
+    // Troop damage styles (single/splash) for ground/air troops
+    const TROOP_SPLASH = new Set([
+      'Wizard','Ice Wizard','Bomber','Valkyrie','Dark Prince','Baby Dragon','Electro Dragon','Sparky','Executioner','Bowler'
+    ].filter(Boolean)); // ignore not-in-list safely
+
+    function troopDamageType(name){
+      if (cardType(name) !== 'troop') return null;
+      return TROOP_SPLASH.has(name) ? 'splash' : 'single';
+    }
+
+    // Elemental / family affinities
+    const AFFINITIES = new Map([
+      ['ice', new Set(['Ice Spirit','Ice Golem','Ice Wizard'])],
+      ['electro', new Set(['Zap','Zappies','Electro Wizard','Electro Dragon','Electro Giant'])],
+      ['goblin', new Set(['Spear Goblins','Goblins','Goblin Gang','Goblin Barrel','Goblin Cage','Goblin Drill','Goblin Giant','Dart Goblin','Goblin Machine','Goblin Demolisher','Goblinstein'])],
+      ['skeleton', new Set(['Skeletons','Skeleton Army','Tombstone','Giant Skeleton','Skeleton Dragons','Skeleton King','Witch','Graveyard'])],
+      ['bat', new Set(['Bats','Night Witch'])],
+      ['fire', new Set(['Fireball','Fire Spirits','Furnace','Phoenix'])]
+    ]);
+
+    // Direct related pairs (spawn / obvious family)
+    const RELATED = new Map([
+      ['Night Witch', new Set(['Bats'])],
+      ['Witch', new Set(['Skeletons','Skeleton Army','Graveyard'])],
+      ['Goblin Gang', new Set(['Spear Goblins','Goblins'])],
+      ['Electro Wizard', new Set(['Zappies','Zap'])],
+      ['Ice Wizard', new Set(['Ice Spirit'])],
+    ]);
+
     // Custom overrides (your extra cards)
     const CUSTOM_OVERRIDES = new Map([
       ['Spirit Empress', { role:'support' }],
       ['Berserker', { role:'damage' }],
       ['Goblin Curse', { type:'spell', dmg:'splash', role:'support' }],
-      ['Goblin Machine', { type:'building', dmg:null, role:'support' }],
+      ['Goblin Machine', { type:'building', dmg:'none', role:'support' }],
       ['Void', { type:'spell', dmg:'splash', role:'damage' }],
       ['Vines', { type:'spell', dmg:'single', role:'support' }],
       ['Goblin Demolisher', { role:'damage', towerOnly:true }],
-      ['Suspicious Bush', { type:'building', dmg:null, role:'support' }],
+      ['Suspicious Bush', { type:'building', dmg:'none', role:'support' }],
       ['Rune Giant', { role:'tank', towerOnly:true }],
       ['Little Prince', { role:'damage' }],
       ['Goblinstein', { role:'tank' }]
     ]);
 
+    // ---------- Derived helpers ----------
     function cardType(name){
       const o = CUSTOM_OVERRIDES.get(name); if(o?.type) return o.type;
       return SPELLS.has(name) ? 'spell' : (BUILDINGS.has(name) ? 'building' : 'troop');
@@ -351,7 +381,7 @@
         if(SINGLE_BUILDINGS.has(name)) return 'single';
         return 'none';
       }
-      return null; // troops
+      return troopDamageType(name); // troop: 'single'|'splash'
     }
     function movementType(name){
       const t = cardType(name);
@@ -371,40 +401,56 @@
       if (t==='building') return 'building';
       return isAirTroop(name) ? 'air' : 'ground';
     }
-    function primaryRoleV2(name){
-      if (CUSTOM_OVERRIDES.get(name)?.role) {
-        const r = CUSTOM_OVERRIDES.get(name).role;
-        if (['wincon','tank','distraction','damage','support'].includes(r)) {
-          // Map 'support' into 'damage' bucket unless you want to keep it distinct
-          return r === 'support' ? 'damage' : r;
-        }
-      }
+    function primaryRole(name){
+      if (CUSTOM_OVERRIDES.get(name)?.role) return CUSTOM_OVERRIDES.get(name).role;
       if (WINCONS.has(name)) return 'wincon';
       if (TANKS.has(name)) return 'tank';
       if (DISTRACTIONS.has(name)) return 'distraction';
+      if (SUPPORT.has(name)) return 'damage'; // fold support into damage for role bucket
       return 'damage';
+    }
+    function affinitiesOf(name){
+      const tags = new Set();
+      for(const [tag,set] of AFFINITIES.entries()){ if(set.has(name)) tags.add(tag); }
+      return tags;
+    }
+    function relatedSet(name){
+      const s = new Set(RELATED.get(name) || []);
+      // also include reverse relations
+      for(const [k,v] of RELATED.entries()){
+        if(v.has(name)) s.add(k);
+      }
+      return s;
     }
 
     function meta(name){
       return {
         type: cardType(name),                 // 'spell'|'building'|'troop'
         group: targetGroup(name),             // 'spell'|'building'|'ground'|'air'
-        dmg: damageType(name),                // 'single'|'splash'|'none'|null
+        dmg: damageType(name),                // 'single'|'splash'|'none'
         move: movementType(name),             // 'building'|'ground'|'air'|null
         towerOnly: isTowerOnly(name),         // boolean
-        role: primaryRoleV2(name),            // 'wincon'|'tank'|'distraction'|'damage'
-        swarm: isSwarm(name)                  // boolean (kept for future)
+        role: primaryRole(name),              // 'wincon'|'tank'|'distraction'|'damage'
+        swarm: isSwarm(name),                 // boolean
+        affinities: affinitiesOf(name),       // Set of tags
+        related: relatedSet(name)             // Set of direct related cards
       };
     }
 
     // ---------- Precise, staged similarity ----------
-    function rankScorePrecise(base, cand){
+    function rankScore(base, cand){
       const A = meta(base), B = meta(cand);
       let s = 0;
+      // Post-filter ranking weights
       if (A.towerOnly === B.towerOnly) s += 3;
-      if ((A.type==='spell'||A.type==='building') && A.dmg === B.dmg) s += 2;
+      if (A.dmg === B.dmg) s += 2;                // includes troop single/splash now
       if (A.role === B.role) s += 2;
       if (A.swarm === B.swarm) s += 1;
+
+      // Affinity / related bonuses
+      const affOverlap = [...A.affinities].some(x => B.affinities.has(x));
+      if (affOverlap) s += 2;
+      if (A.related.has(cand)) s += 3;            // direct relation (e.g., Night Witch ↔ Bats)
       return s;
     }
 
@@ -420,21 +466,19 @@
       const A = meta(base);
       const candidates = CLASH_CARDS.filter(c => c !== base);
 
-      // 1) STARTING POOL by group: spell | building | ground | air
+      // 1) START POOL by group: spell | building | ground | air
       let pool = candidates.filter(c => meta(c).group === A.group);
       if(!pool.length && (A.group==='air' || A.group==='ground')){
-        // widen to all troops if no air/ground available (shouldn't happen)
         pool = candidates.filter(c => meta(c).type === 'troop');
       }
 
-      // 2) STRICT FILTERS with relaxation by difficulty
-      // Priority: towerOnly -> damage style (for spells/buildings) -> role
+      // 2) STRICT FILTERS (priority): towerOnly → dmg type (spells/buildings + troop single/splash) → role
       const stagesByDiff = { easy: 3, medium: 2, hard: 1, chaos: 0 };
       let stage = stagesByDiff[difficulty] ?? 3;
 
       const tests = [];
       tests.push((M)=> M.towerOnly === A.towerOnly);
-      if (A.type==='spell' || A.type==='building') tests.push((M)=> M.dmg === A.dmg);
+      tests.push((M)=> M.dmg === A.dmg);
       tests.push((M)=> M.role === A.role);
 
       let narrowed = [];
@@ -451,15 +495,15 @@
       }
       pool = narrowed.length ? narrowed : pool;
 
-      // 3) Hard: sometimes allow best overall within the same group
+      // 3) Hard: sometimes allow best overall within same group
       if(difficulty==='hard' && Math.random()<0.4){
-        const scoredAll = pool.map(c => ({ c, s: rankScorePrecise(base, c) }));
+        const scoredAll = pool.map(c => ({ c, s: rankScore(base, c) }));
         const pick = pickTopRandom(scoredAll);
         if(pick) return pick;
       }
 
       // 4) Rank + tie-break
-      const scored = pool.map(c => ({ c, s: rankScorePrecise(base, c) }));
+      const scored = pool.map(c => ({ c, s: rankScore(base, c) }));
       const choice = pickTopRandom(scored);
       return choice || candidates[Math.floor(Math.random()*candidates.length)];
     }
