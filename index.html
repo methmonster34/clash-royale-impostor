@@ -292,122 +292,147 @@
     }
     el('modeClash').onclick = () => setMode('clash');
     el('modeDark').onclick = () => setMode('dark');
-  // -------- Similarity engine (advanced tags) --------
-    // Base category sets
+  // -------- Similarity engine (reworked taxonomy) --------
+    // Base partitions — keep simple: type, damage type (for spells/buildings), movement, towerOnly, role (tank/support/damage)
     const SPELLS = new Set(['Arrows','Zap','Snowball','Rage','Clone','Mirror','Fireball','Poison','Rocket','Lightning','Earthquake','Tornado','The Log','Barbarian Barrel','Royal Delivery','Heal Spirit']);
     const BUILDINGS = new Set(['X-Bow','Mortar','Cannon','Bomb Tower','Tesla','Inferno Tower','Furnace','Tombstone','Goblin Cage','Goblin Hut','Barbarian Hut','Elixir Collector','Goblin Drill']);
 
-    // Roles / traits
-    const WINCONS = new Set(['Hog Rider','Giant','Goblin Giant','Royal Giant','Balloon','X-Bow','Mortar','Graveyard','Miner','Ram Rider','Battle Ram','Goblin Drill','Elixir Golem','Electro Giant','Golem','Lava Hound','Three Musketeers','Sparky']);
-    const SIEGE_BUILDINGS = new Set(['X-Bow','Mortar']);
-    const SPAWN_BUILDINGS = new Set(['Furnace','Goblin Hut','Barbarian Hut']);
-    const ECON_BUILDINGS = new Set(['Elixir Collector']);
-    const BUILDING_TARGETING = new Set(['Giant','Goblin Giant','Royal Giant','Balloon','Hog Rider','Ram Rider','Battle Ram','Golem','Electro Giant','Miner','X-Bow','Mortar','Goblin Drill']);
-    const AIR_TROOPS = new Set(['Minions','Minion Horde','Baby Dragon','Inferno Dragon','Electro Dragon','Skeleton Dragons','Phoenix','Mega Minion','Flying Machine','Lava Hound','Balloon']);
-    const SPLASH_TROOPS = new Set(['Wizard','Ice Wizard','Baby Dragon','Electro Dragon','Executioner','Valkyrie','Bowler','Witch','Mother Witch','Bomber','Dark Prince','Splash']); // some may not be in list; safe fallback
-    const RANGED_TROOPS = new Set(['Archers','Musketeer','Hunter','Wizard','Ice Wizard','Electro Wizard','Magic Archer','Dart Goblin','Flying Machine','Zappies','Rascals','Mother Witch','Princess','Spear Goblins']);
+    // Damage type for spells
+    const SPLASH_SPELLS = new Set(['Arrows','Fireball','Poison','Rocket','Lightning','Earthquake','Tornado','The Log','Royal Delivery','Barbarian Barrel','Snowball']);
+    const SINGLE_SPELLS = new Set(['Zap','Rage','Clone','Mirror','Heal Spirit']); // functional/utility treated as single
 
-    // Known elixir (partial; others left undefined)
-    const ELIXIR = new Map([
-      ['Arrows',3],['Zap',2],['Snowball',2],['Rage',2],['Clone',3],['Fireball',4],['Poison',4],['Rocket',6],['Lightning',6],['Earthquake',3],['Tornado',3],['The Log',2],['Barbarian Barrel',2],['Royal Delivery',3],['Heal Spirit',1],
-      ['Skeletons',1],['Ice Spirit',1],['Fire Spirits',2],['Bats',2],['Spear Goblins',2],['Goblins',2],['Goblin Gang',3],['Guards',3],['Skeleton Army',3],['Wall Breakers',2],
-      ['Archers',3],['Knight',3],['Bomber',2],['Ice Golem',2],['Minions',3],['Minion Horde',5],['Dart Goblin',3],['Goblin Cage',4],['Goblin Hut',5],['Barbarian Hut',7],['Barbarians',5],['Royal Recruits',7],['Royal Hogs',5],['Zappies',4],['Rascals',5],
-      ['Musketeer',4],['Hunter',4],['Wizard',5],['Ice Wizard',3],['Electro Wizard',5],['Magic Archer',4],['Mother Witch',4],
-      ['Valkyrie',4],['Mini P.E.K.K.A',4],['Dark Prince',4],['Prince',5],['Bandit',3],['Battle Ram',4],['Cannon Cart',5],['Ram Rider',5],['Lumberjack',4],['Battle Healer',4],['Fisherman',3],['Monk',5],
-      ['P.E.K.K.A',7],['Giant',5],['Giant Skeleton',6],['Goblin Giant',6],['Royal Giant',6],['Hog Rider',4],['Mega Knight',7],['Sparky',6],['Balloon',5],['X-Bow',6],['Mortar',4],['Cannon',3],['Bomb Tower',4],['Tesla',4],['Inferno Tower',5],['Furnace',4],['Tombstone',3],
-      ['Baby Dragon',4],['Inferno Dragon',4],['Electro Dragon',5],['Skeleton Dragons',4],['Phoenix',4],
-      ['Mega Minion',3],['Flying Machine',4],
-      ['Golem',8],['Lava Hound',7],['Graveyard',5],['Miner',3],['Goblin Barrel',3],['Goblin Drill',4],['Elixir Golem',3],['Electro Giant',8],
-      ['Three Musketeers',9],['Elixir Collector',6]
+    // Damage type for buildings
+    const SPLASH_BUILDINGS = new Set(['Bomb Tower','Mortar']); // Mortar = area; Bomb Tower = splash
+    const SINGLE_BUILDINGS = new Set(['Cannon','Tesla','Inferno Tower','X-Bow','Goblin Cage']);
+    // Buildings with no direct damage
+    const NON_DAMAGE_BUILDINGS = new Set(['Furnace','Tombstone','Goblin Hut','Barbarian Hut','Elixir Collector','Goblin Drill']);
+
+    // Movement (troops)
+    const AIR_TROOPS = new Set(['Minions','Minion Horde','Baby Dragon','Inferno Dragon','Electro Dragon','Skeleton Dragons','Phoenix','Mega Minion','Flying Machine','Lava Hound','Balloon']);
+    // Troops that deploy >3 units at once → swarm=true
+    const SWARM_TROOPS = new Set(['Minion Horde','Bats','Barbarians','Royal Recruits','Royal Hogs','Goblin Gang','Skeleton Army']);
+
+    // Obvious tower-only attackers (buildings-only targeting)
+    const TOWER_ONLY = new Set(['Hog Rider','Giant','Goblin Giant','Royal Giant','Balloon','Battle Ram','Golem','Goblin Drill']);
+
+    // Roles: primary (pick exactly one among tank/support/damage)
+    const TANKS = new Set(['Giant','Goblin Giant','Royal Giant','Golem','Electro Giant','P.E.K.K.A','Mega Knight','Giant Skeleton','Lava Hound','Elixir Golem','Rune Giant']);
+    const SUPPORT = new Set(['Ice Golem','Ice Wizard','Wizard','Electro Wizard','Magic Archer','Mother Witch','Fisherman','Battle Healer','Monk','Heal Spirit','Tornado','Rage','Mirror','Clone','Royal Delivery','Elixir Collector','Furnace','Goblin Hut','Barbarian Hut','Tombstone','Goblin Cage']);
+    // Everything else defaults to damage
+
+    // Helper maps for newer/custom cards (optional overrides)
+    const CUSTOM_OVERRIDES = new Map([
+      ['Spirit Empress', { role:'support' }],
+      ['Berserker', { role:'damage' }],
+      ['Goblin Curse', { type:'spell', dmg:'splash', role:'support' }],
+      ['Goblin Machine', { type:'building', dmg:null, role:'support' }],
+      ['Void', { type:'spell', dmg:'splash', role:'damage' }],
+      ['Vines', { type:'spell', dmg:'single', role:'support' }],
+      ['Goblin Demolisher', { role:'damage', towerOnly:true }],
+      ['Suspicious Bush', { type:'building', dmg:null, role:'support' }],
+      ['Rune Giant', { role:'tank', towerOnly:true }],
+      ['Little Prince', { role:'damage' }],
+      ['Goblinstein', { role:'tank' }]
     ]);
 
-    function cardType(name){ return SPELLS.has(name) ? 'spell' : (BUILDINGS.has(name) ? 'building' : 'troop'); }
-    function movement(name){ return cardType(name) === 'troop' ? (AIR_TROOPS.has(name) ? 'air' : 'ground') : null; }
-    function targets(name){
-      if(cardType(name) === 'spell') return ['ground','air'];
-      if(cardType(name) === 'building') return [];
-      const t = ['ground'];
-      if (AIR_TROOPS.has(name)) t.push('air');
-      if (BUILDING_TARGETING.has(name)) t.push('buildings');
-      return Array.from(new Set(t));
+    function cardType(name){
+      const o = CUSTOM_OVERRIDES.get(name); if(o?.type) return o.type;
+      return SPELLS.has(name) ? 'spell' : (BUILDINGS.has(name) ? 'building' : 'troop');
     }
-    function roles(name){
-      const r = new Set();
-      if(WINCONS.has(name)) r.add('wincon');
-      if(SIEGE_BUILDINGS.has(name)) r.add('siege');
-      if(SPAWN_BUILDINGS.has(name)) r.add('spawner');
-      if(ECON_BUILDINGS.has(name)) r.add('economy');
-      if(BUILDING_TARGETING.has(name)) r.add('building-target');
-      if(SPLASH_TROOPS.has(name) || ['Fireball','Poison','Rocket','Lightning','Earthquake','Tornado','The Log','Barbarian Barrel','Royal Delivery'].includes(name)) r.add('splash/control');
-      if(RANGED_TROOPS.has(name)) r.add('ranged'); else if(cardType(name)==='troop') r.add('melee');
-      return Array.from(r);
+
+    function damageType(name){
+      const o = CUSTOM_OVERRIDES.get(name); if(o?.dmg !== undefined) return o.dmg; // 'single'|'splash'|null
+      const t = cardType(name);
+      if(t==='spell') return SPLASH_SPELLS.has(name) ? 'splash' : (SINGLE_SPELLS.has(name) ? 'single' : null);
+      if(t==='building'){
+        if(NON_DAMAGE_BUILDINGS.has(name)) return null;
+        if(SPLASH_BUILDINGS.has(name)) return 'splash';
+        if(SINGLE_BUILDINGS.has(name)) return 'single';
+        return null;
+      }
+      return null; // troops not required here
     }
-    function elixirOf(name){ return ELIXIR.get(name); }
+
+    function movementType(name){
+      const t = cardType(name);
+      if(t==='building') return 'building';
+      if(t==='troop') return AIR_TROOPS.has(name) ? 'air' : 'ground';
+      return null; // spells
+    }
+
+    function isSwarm(name){
+      return cardType(name)==='troop' && SWARM_TROOPS.has(name);
+    }
+
+    function isTowerOnly(name){
+      const o = CUSTOM_OVERRIDES.get(name); if(o?.towerOnly !== undefined) return !!o.towerOnly;
+      return TOWER_ONLY.has(name);
+    }
+
+    function primaryRole(name){
+      const o = CUSTOM_OVERRIDES.get(name); if(o?.role) return o.role; // 'tank'|'support'|'damage'
+      if(TANKS.has(name)) return 'tank';
+      if(SUPPORT.has(name)) return 'support';
+      return 'damage';
+    }
 
     function meta(name){
       return {
         type: cardType(name),
-        role: roles(name),
-        movement: movement(name),
-        targets: targets(name),
-        range: RANGED_TROOPS.has(name) ? 'ranged' : (cardType(name)==='troop' ? 'melee' : null),
-        elixir: elixirOf(name)
+        dmg: damageType(name),
+        move: movementType(name),
+        towerOnly: isTowerOnly(name),
+        role: primaryRole(name),
+        swarm: isSwarm(name)
       };
+    }
     }
 
     function scoreMatch(base, cand){
       const A = meta(base), B = meta(cand);
-      let score = 0;
-      if(A.type === B.type) score += 4;
-      // role overlap
-      const overlap = (A.role||[]).filter(x => (B.role||[]).includes(x)).length; score += overlap * 2;
-      // movement/targets similarity
-      if(A.movement && B.movement && A.movement === B.movement) score += 1;
-      const tgtOverlap = (A.targets||[]).filter(x => (B.targets||[]).includes(x)).length; score += Math.min(2, tgtOverlap);
-      // elixir proximity
-      if(A.elixir != null && B.elixir != null){
-        const diff = Math.abs(A.elixir - B.elixir);
-        if(diff === 0) score += 2; else if(diff === 1) score += 1; else if(diff <= 2) score += 0.5;
-      }
-      return score;
+      let s = 0;
+      if(A.type && B.type && A.type===B.type) s += 4;                 // same type
+      if(A.dmg && B.dmg && A.dmg===B.dmg) s += 2;                      // same damage style
+      if(A.move && B.move && A.move===B.move) s += 2;                  // same movement
+      if(A.towerOnly === B.towerOnly) s += 2;                          // same tower-only behavior
+      if(A.role && B.role && A.role===B.role) s += 3;                  // same primary role
+      if(A.swarm === B.swarm) s += 2;                                   // swarm alignment                  // same primary role
+      return s;
     }
 
     function pickSimilar(base, difficulty='easy'){
       const candidates = CLASH_CARDS.filter(c => c !== base);
-      // compute scores
-      const scored = candidates.map(c => ({c, s: scoreMatch(base,c)}));
-      // helpers
-      const sameType = scored.filter(o => cardType(o.c) === cardType(base));
-      const byScore = arr => arr.sort((a,b)=>b.s - a.s);
+      const scored = candidates.map(c => ({ c, s: scoreMatch(base, c) }));
+      const byScore = arr => arr.sort((a,b)=>b.s-a.s);
 
-      if(difficulty === 'easy'){
-        // strictly same type; pick highest score among same type
+      // Easy: same type, best score
+      if(difficulty==='easy'){
+        const sameType = scored.filter(o => meta(o.c).type === meta(base).type);
         const pool = byScore(sameType);
         return (pool[0]?.c) || candidates[Math.floor(Math.random()*candidates.length)];
       }
-      if(difficulty === 'medium'){
-        // prefer same type with at least one shared role/targets; fallback to top same-type
-        const A = meta(base);
-        const pool = byScore(sameType.filter(o => {
-          const B = meta(o.c);
-          const roleOverlap = (A.role||[]).some(r => (B.role||[]).includes(r));
-          const tgtOverlap = (A.targets||[]).some(t => (B.targets||[]).includes(t));
-          return roleOverlap || tgtOverlap;
-        }));
-        if(pool.length) return pool[0].c;
-        const fallback = byScore(sameType);
-        return (fallback[0]?.c) || candidates[Math.floor(Math.random()*candidates.length)];
+      // Medium: same type + prefer same role/towerOnly
+      if(difficulty==='medium'){
+        const t = meta(base).type;
+        const pool = byScore(scored.filter(o => meta(o.c).type===t))
+          .sort((a,b)=>{
+            const A = meta(a.c), B = meta(b.c), M = meta(base);
+            const aBonus = (A.role===M.role) + (A.towerOnly===M.towerOnly);
+            const bBonus = (B.role===M.role) + (B.towerOnly===M.towerOnly);
+            return bBonus - aBonus;
+          });
+        return (pool[0]?.c) || candidates[Math.floor(Math.random()*candidates.length)];
       }
-      if(difficulty === 'hard'){
-        // 40%: pick best same-type; 60%: pick best overall (could be different type)
+      // Hard: 40% same-type best, else best overall
+      if(difficulty==='hard'){
         if(Math.random()<0.4){
-          const pool = byScore(sameType);
-          return (pool[0]?.c) || candidates[Math.floor(Math.random()*candidates.length)];
+          const sameType = byScore(scored.filter(o => meta(o.c).type===meta(base).type));
+          return (sameType[0]?.c) || candidates[Math.floor(Math.random()*candidates.length)];
         }
         const all = byScore(scored);
-        return all.find(o=>o.c!==base)?.c || candidates[Math.floor(Math.random()*candidates.length)];
+        return all[0]?.c || candidates[Math.floor(Math.random()*candidates.length)];
       }
-      // chaos: uniform random different card
+      // Chaos: random different card
       return candidates[Math.floor(Math.random()*candidates.length)];
     }
 
