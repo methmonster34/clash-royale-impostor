@@ -49,14 +49,7 @@
       gap: 14px;
     }
 
-    .wordText {
-      font-size: 40px;
-      font-weight: 800;
-      letter-spacing: .4px;
-      text-align: center;
-      word-break: break-word;
-      max-width: 100%;
-    }
+    .wordText { font-size: 40px; font-weight: 800; letter-spacing: .4px; text-align: center; word-break: break-word; max-width: 100%; }
 
     .imageSlot {
       width: 100%;
@@ -99,6 +92,13 @@
       <div class="row" style="margin-top:12px">
         <button class="btn primary" id="begin">Begin Round</button>
         <button class="btn danger" id="resetAllSetup">Reset</button>
+      </div>
+
+      <!-- Moved OUT of <script>: developer test block -->
+      <div style="margin-top:12px">
+        <input id="testWord" placeholder="Type a card (e.g., Archer Queen)" style="width:100%;padding:10px;border-radius:8px;border:1px solid #334155;background:#0e1526;color:#e5e7eb">
+        <button class="btn" id="testImageBtn">Test Image</button>
+        <div id="imgDebug" style="color:#94a3b8;font-size:12px;margin-top:6px"></div>
       </div>
     </div>
 
@@ -148,51 +148,45 @@
       'Archer Queen','Skeleton King','Golden Knight','Mighty Miner','Little Prince','Goblinstein'
     ];
 
- // Use jsDelivr CDN instead of raw.githubusercontent
-const CDN_BASE = "https://cdn.jsdelivr.net/gh/methmonster34/clash-royale-impostor@main";
-const IMAGE_FOLDERS = [
-  "Clash Royale Imposter Images",
-  "Clash Royale Imposter Images 2"
-];
+    // Use jsDelivr CDN instead of raw.githubusercontent
+    const CDN_BASE = "https://cdn.jsdelivr.net/gh/methmonster34/clash-royale-impostor@main";
+    const IMAGE_FOLDERS = [
+      "Clash Royale Imposter Images",
+      "Clash Royale Imposter Images 2"
+    ];
 
-function filenameForCard(name) {
-  return name.toLowerCase().replace(/[^a-z0-9]/g, '') + ".png";
-}
-
-function setCardImage(name) {
-  const img = document.getElementById("cardImg");
-  const file = filenameForCard(name);
-
-  // Build candidate URLs (properly encoding the folder names)
-  const urls = IMAGE_FOLDERS.map(folder =>
-    `${CDN_BASE}/${encodeURIComponent(folder)}/${file}`
-  );
-
-  img.style.display = "none";
-  let i = 0;
-
-  function tryNext() {
-    if (i >= urls.length) {
-      console.warn("Image not found in either folder:", file, urls);
-      img.src = "";
-      img.style.display = "none";
-      return;
+    function filenameForCard(name) {
+      return name.toLowerCase().replace(/[^a-z0-9]/g, '') + ".png";
     }
-    const url = urls[i];
-    console.log("[image TRY]", url);
-    img.onerror = () => { i++; tryNext(); };
-    img.onload  = () => { console.log("[image OK]", url); img.style.display = "block"; };
-    img.src = url + `?v=${Date.now()}`; // bust cache
-  }
 
-  tryNext();
-}
-<div style="margin-top:12px">
-  <input id="testWord" placeholder="Type a card (e.g., Archer Queen)" style="width:100%;padding:10px;border-radius:8px;border:1px solid #334155;background:#0e1526;color:#e5e7eb">
-  <button class="btn" onclick="(function(){ const w=document.getElementById('testWord').value||'Archer Queen'; setCardImage(w); document.getElementById('wordText').textContent=w; state.revealed=true; })()">Test Image</button>
-  <div id="imgDebug" style="color:#94a3b8;font-size:12px;margin-top:6px"></div>
-</div>
+    function setCardImage(name) {
+      const img = document.getElementById("cardImg");
+      const file = filenameForCard(name);
 
+      // Build candidate URLs (properly encoding the folder names)
+      const urls = IMAGE_FOLDERS.map(folder =>
+        `${CDN_BASE}/${encodeURIComponent(folder)}/${file}`
+      );
+
+      img.style.display = "none";
+      let i = 0;
+
+      function tryNext() {
+        if (i >= urls.length) {
+          console.warn("Image not found in either folder:", file, urls);
+          img.src = "";
+          img.style.display = "none";
+          return;
+        }
+        const url = urls[i];
+        console.log("[image TRY]", url);
+        img.onerror = () => { i++; tryNext(); };
+        img.onload  = () => { console.log("[image OK]", url); img.style.display = "block"; };
+        img.src = url + `?v=${Date.now()}`; // bust cache
+      }
+
+      tryNext();
+    }
 
     const el = id => document.getElementById(id);
     const screens = { setup: el("screen-setup"), pass: el("screen-pass"), summary: el("screen-summary") };
@@ -258,6 +252,7 @@ function setCardImage(name) {
       updatePassUI();
     }
 
+    // Event bindings
     el("players").addEventListener("input", () => { state.players = Math.max(3, Math.min(20, parseInt(el("players").value || "6"))); clampImpostors(); });
     el("impostors").addEventListener("input", () => { state.impostors = parseInt(el("impostors").value || "1"); clampImpostors(); });
 
@@ -270,6 +265,15 @@ function setCardImage(name) {
       el("impostorList").classList.remove("hidden");
     };
     el("playAgain").onclick = () => { show("setup"); };
+
+    // Dev test button (was breaking JS when placed inside <script>)
+    el("testImageBtn").onclick = () => {
+      const w = (el("testWord").value || 'Archer Queen');
+      setCardImage(w);
+      el("wordText").textContent = w;
+      state.revealed = true;
+      updatePassUI();
+    };
   </script>
 </body>
 </html>
