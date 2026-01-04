@@ -3,9 +3,6 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Google AdSense verification -->
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2021683559156386"
-     crossorigin="anonymous"></script>
   <title>Clash Royale Imposter</title>
   <link rel="preconnect" href="https://raw.githubusercontent.com" />
   <style>
@@ -37,39 +34,57 @@
     .imageSlot{width:100%;max-width:320px;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;border-radius:18px;border:1px dashed rgba(255,255,255,.14);background:rgba(255,255,255,.02)}
     #cardImg{max-width:100%;max-height:100%;object-fit:contain;display:none}
     .hint{color:var(--muted);font-size:14px;margin-top:-6px}
+
+    /* Player stepper (minimal UI addition) */
+    .stepper{display:flex;align-items:center;gap:10px}
+    .stepBtn{width:44px;height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0e1526;color:var(--text);font-weight:900;font-size:18px;cursor:pointer}
+    .stepValue{flex:1;text-align:center;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0e1526;color:var(--text);font-weight:800}
+    .miniRow{display:flex;gap:10px;align-items:center;margin-top:8px}
+    .tinyBtn{padding:8px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0e1526;color:var(--text);font-weight:800;cursor:pointer}
+    .tinyBtn.on{background:rgba(34,197,94,.18);border-color:rgba(34,197,94,.5)}
   </style>
 </head>
+
 <body>
   <div class="wrap">
     <div class="modebar">
       <button class="modebtn primary" id="modeClash" type="button">Clash Royale Imposter</button>
       <button class="modebtn" id="modeDark" type="button">Clash Royale in the Dark</button>
-      <button class="modebtn disabled" id="modeCustom" type="button">Custom Word Imposter</button>
+      <button class="modebtn" id="modeDarkWild" type="button">In the Dark (Wild)</button>
+      <button class="modebtn" id="modeRandom" type="button">Random Mode</button>
     </div>
 
     <div class="card" id="screen-setup">
       <h1>Clash Royale Imposter</h1>
-      <p class="sub">Add players and impostors, then start. The word list is hidden. Extra space is reserved for card images.</p>
+      <p class="sub">Pick a mode, set players/impostors, then start. In Dark modes, impostors get a similar card.</p>
 
       <div class="row">
         <div>
-          <label for="players">Players</label>
-          <input id="players" type="number" min="3" max="20" value="6" />
+          <label>Players</label>
+          <div class="stepper">
+            <button class="stepBtn" id="playersMinus" type="button">−</button>
+            <div class="stepValue" id="playersValue">4</div>
+            <button class="stepBtn" id="playersPlus" type="button">+</button>
+          </div>
         </div>
+
         <div>
-          <label for="impostors">Impostors (≤ players)</label>
-          <input id="impostors" type="number" min="1" value="1" />
+          <label for="impostors">Impostors (0 ≤ impostors ≤ players)</label>
+          <input id="impostors" type="number" min="0" value="1" />
+          <div class="miniRow">
+            <button class="tinyBtn" id="toggleRandomImps" type="button">Random impostors: OFF</button>
+          </div>
+          <div class="hint" id="impHint" style="margin-top:6px">If Random is ON, impostor count is hidden and changes every round.</div>
         </div>
       </div>
 
       <div class="row" id="darkControls" style="margin-top:12px; display:none">
         <div>
-          <label for="darkDifficulty">Dark Mode Difficulty</label>
-          <select id="darkDifficulty">
-            <option value="easy">Easy (strict)</option>
-            <option value="medium">Medium (moderate)</option>
-            <option value="hard">Hard (varied)</option>
-            <option value="chaos">Chaos (random)</option>
+          <label for="difficulty">Difficulty (Dark modes)</label>
+          <select id="difficulty">
+            <option value="easy">Easy (very similar)</option>
+            <option value="medium" selected>Medium (mixed)</option>
+            <option value="hard">Hard (deceptive)</option>
           </select>
         </div>
         <div></div>
@@ -99,13 +114,15 @@
 
     <div class="card hidden" id="screen-summary">
       <div class="center">
-        <div class="pill">Round finished</div>
+        <div class="pill" id="roundInfoPill">Round finished</div>
         <h1>How to Play</h1>
-        <p class="sub" style="max-width:640px">
-          Most players saw the same Clash Royale card. Impostors saw <b>IMPOSTOR</b> instead. Discuss clues about the secret card without giving it away.
+        <p class="sub" style="max-width:640px" id="summaryText">
+          Discuss clues without saying the card name. Figure out who the impostors are.
         </p>
+
         <button class="btn" id="showImpostors" type="button">Reveal Impostors</button>
         <div id="impostorList" class="sub hidden"></div>
+
         <div class="divider"></div>
         <button class="btn primary" id="playAgain" type="button">Play Again</button>
       </div>
@@ -113,57 +130,90 @@
   </div>
 
   <script>
-    // ---------------- Data -----------------
-    const CLASH_CARDS = [
-      'Arrows','Zap','Snowball','Rage','Clone','Mirror','Heal Spirit','Fireball','Poison','Rocket','Lightning','Earthquake','Tornado','The Log','Barbarian Barrel','Royal Delivery',
-      'Skeletons','Ice Spirit','Fire Spirit','Bats','Spear Goblins','Goblins','Goblin Gang','Guards','Skeleton Army','Wall Breakers',
-      'Archers','Knight','Bomber','Ice Golem','Minions','Minion Horde','Dart Goblin','Goblin Cage','Goblin Hut','Barbarian Hut','Barbarians','Royal Recruits','Royal Hogs','Zappies','Rascals',
-      'Musketeer','Hunter','Wizard','Ice Wizard','Electro Wizard','Magic Archer','Mother Witch',
-      'Valkyrie','Mini P.E.K.K.A','Dark Prince','Prince','Bandit','Battle Ram','Cannon Cart','Ram Rider','Lumberjack','Battle Healer','Fisherman','Monk',
-      'P.E.K.K.A','Giant','Giant Skeleton','Goblin Giant','Royal Giant','Hog Rider','Mega Knight','Sparky','Balloon','X-Bow','Mortar','Cannon','Bomb Tower','Tesla','Inferno Tower','Furnace','Tombstone',
-      'Baby Dragon','Inferno Dragon','Electro Dragon','Skeleton Dragons','Phoenix',
-      'Mega Minion','Flying Machine',
-      'Golem','Lava Hound','Graveyard','Miner','Goblin Barrel','Goblin Drill','Elixir Golem','Electro Giant',
-      'Three Musketeers','Elixir Collector','Spirit Empress','Berserker','Goblin Curse','Goblin Machine','Void','Vines','Goblin Demolisher','Suspicious Bush','Rune Giant',
-      'Archer Queen','Skeleton King','Golden Knight','Mighty Miner','Little Prince','Goblinstein'
-    ];
+    // =========================
+    // 0) CONFIG
+    // =========================
+    // If you want an impostor image in Normal mode, set this to a direct image URL.
+    // Example: const IMPOSTOR_IMAGE_URL = "https://yourdomain.com/impostor.png";
+    const IMPOSTOR_IMAGE_URL = "";
 
+    // Card image repo (your existing setup)
     const RAW_BASE = "https://raw.githubusercontent.com/methmonster34/clash-royale-impostor/main";
     const IMAGE_FOLDERS = ["Clash Royale Imposter Images", "Clash Royale Imposter Images 2"];
 
-    // --------------- Helpers ----------------
+    // =========================
+    // 1) DATA (card list)
+    // =========================
+    // Keep your master list here. (You said this is all cards in your game.)
+    const CLASH_CARDS = [
+      'Arrows','Zap','Giant Snowball','Rage','Clone','Mirror','Heal Spirit','Fireball','Poison','Rocket','Lightning','Earthquake','Tornado','The Log','Barbarian Barrel','Royal Delivery','Freeze',
+      'Skeletons','Ice Spirit','Fire Spirit','Bats','Spear Goblins','Goblins','Goblin Gang','Guards','Skeleton Army','Wall Breakers',
+      'Archers','Knight','Bomber','Ice Golem','Minions','Minion Horde','Dart Goblin','Barbarians','Royal Recruits','Royal Hogs','Zappies','Rascals',
+      'Musketeer','Hunter','Wizard','Ice Wizard','Electro Wizard','Magic Archer','Mother Witch',
+      'Valkyrie','Mini P.E.K.K.A','Dark Prince','Prince','Bandit','Battle Ram','Cannon Cart','Ram Rider','Lumberjack','Battle Healer','Fisherman','Monk',
+      'P.E.K.K.A','Giant','Giant Skeleton','Goblin Giant','Royal Giant','Hog Rider','Mega Knight','Sparky','Balloon',
+      'X-Bow','Mortar','Cannon','Bomb Tower','Tesla','Inferno Tower','Furnace','Tombstone','Goblin Cage','Goblin Hut','Barbarian Hut','Elixir Collector','Goblin Drill',
+      'Baby Dragon','Inferno Dragon','Electro Dragon','Skeleton Dragons','Phoenix',
+      'Mega Minion','Flying Machine',
+      'Golem','Lava Hound','Graveyard','Miner','Goblin Barrel','Elixir Golem','Electro Giant',
+      'Three Musketeers',
+      // Your newer/custom cards you mentioned:
+      'Spirit Empress','Goblin Curse','Goblin Machine','Void','Vines','Goblin Demolisher','Suspicious Bush','Rune Giant','Little Prince','Goblinstein','Boss Bandit',
+      // Champions:
+      'Archer Queen','Skeleton King','Golden Knight','Mighty Miner'
+    ];
+
+    // =========================
+    // 2) HELPERS (DOM + Images)
+    // =========================
     const el = id => document.getElementById(id);
     const screens = { setup: el("screen-setup"), pass: el("screen-pass"), summary: el("screen-summary") };
-    let mode = 'clash'; // 'clash' | 'dark'
     const show = name => { Object.values(screens).forEach(s => s.classList.add("hidden")); screens[name].classList.remove("hidden"); };
+
+    function shuffle(arr){
+      for(let i=arr.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
 
     function filenameForCard(name){ return name.toLowerCase().replace(/[^a-z0-9]/g,'') + '.png'; }
 
-    function setCardImage(name){
+    function setCardImageByName(name){
       const img = el('cardImg');
-      const file = filenameForCard(name);
-      const urls = IMAGE_FOLDERS.map(folder => `${RAW_BASE}/${encodeURIComponent(folder)}/${file}`);
-
       img.style.display = 'none';
       img.loading = 'eager';
       img.decoding = 'async';
       img.referrerPolicy = 'no-referrer';
 
+      // Optional impostor image
+      if(name === '__IMPOSTOR__' && IMPOSTOR_IMAGE_URL){
+        img.onload = () => img.style.display = 'block';
+        img.onerror = () => { img.removeAttribute('src'); img.style.display='none'; };
+        img.src = IMPOSTOR_IMAGE_URL;
+        return;
+      }
+
+      const file = filenameForCard(name);
+      const urls = IMAGE_FOLDERS.map(folder => `${RAW_BASE}/${encodeURIComponent(folder)}/${file}`);
       let i = 0;
+
       function tryNext(){
         if(i >= urls.length){
-          console.warn('[image MISS]', file, urls);
-          img.removeAttribute('src'); img.style.display='none'; return;
+          img.removeAttribute('src');
+          img.style.display='none';
+          return;
         }
-        const url = urls[i];
         img.onerror = () => { i++; tryNext(); };
         img.onload  = () => { img.style.display = 'block'; };
-        img.src = url;
+        img.src = urls[i];
       }
       tryNext();
     }
 
     function prefetchCardImage(name){
+      if(!name || name==='__IMPOSTOR__') return;
       const file = filenameForCard(name);
       IMAGE_FOLDERS.forEach(folder => {
         const i = new Image();
@@ -173,62 +223,514 @@
       });
     }
 
-    // --------------- State ------------------
-    let state = {
-      players: 6,
+    // =========================
+    // 3) GAME STATE
+    // =========================
+    const state = {
+      players: 4,
       impostors: 1,
-      assignments: [],
-      word: "",
+      randomImpostors: false,
+
+      selectedMode: 'clash',   // 'clash'|'dark'|'darkWild'|'random'
+      roundMode: 'clash',      // actual mode used this round
+
+      difficulty: 'medium',    // 'easy'|'medium'|'hard' (used in dark modes)
+
+      realCard: '',
+      assignments: [],         // 'IMPOSTOR'|'REAL' per player
+      fakeCards: [],           // card per player (only used in dark modes)
+
       turn: 0,
       revealed: false,
       history: [],
-      impostorAlts: []
+
+      // Light repetition-avoid
+      lastReal: null,
+      lastFakes: new Set()
     };
 
-    function clampImpostors(){
-      const p = state.players;
-      if(state.impostors < 1) state.impostors = 1;
-      if(state.impostors > p) state.impostors = p;
+    // =========================
+    // 4) SETUP UI LOGIC
+    // =========================
+    function setMode(newMode){
+      state.selectedMode = newMode;
+
+      el('modeClash').classList.toggle('primary', newMode==='clash');
+      el('modeDark').classList.toggle('primary', newMode==='dark');
+      el('modeDarkWild').classList.toggle('primary', newMode==='darkWild');
+      el('modeRandom').classList.toggle('primary', newMode==='random');
+
+      const showDarkControls = (newMode === 'dark' || newMode === 'darkWild' || newMode === 'random');
+      el('darkControls').style.display = showDarkControls ? 'grid' : 'none';
+    }
+
+    function setPlayers(n){
+      state.players = Math.max(3, Math.min(20, n));
+      el('playersValue').textContent = String(state.players);
+
+      // Clamp impostors to [0..players]
+      state.impostors = Math.max(0, Math.min(state.players, state.impostors));
       el('impostors').value = String(state.impostors);
     }
 
     function readSetup(){
-      state.players = Math.max(3, Math.min(20, parseInt(el('players').value || '6')));
-      state.impostors = parseInt(el('impostors').value || '1');
-      clampImpostors();
+      // players come from stepper
+      // impostors from input (unless random)
+      state.impostors = parseInt(el('impostors').value || '0', 10);
+      if(Number.isNaN(state.impostors)) state.impostors = 0;
+      state.impostors = Math.max(0, Math.min(state.players, state.impostors));
+      el('impostors').value = String(state.impostors);
+
+      state.difficulty = el('difficulty').value || 'medium';
     }
 
-    function randomWord(){
-      state.word = CLASH_CARDS[Math.floor(Math.random()*CLASH_CARDS.length)];
-      prefetchCardImage(state.word);
-    }
+    function setRandomImpostors(on){
+      state.randomImpostors = !!on;
+      el('toggleRandomImps').classList.toggle('on', state.randomImpostors);
+      el('toggleRandomImps').textContent = state.randomImpostors ? 'Random impostors: ON' : 'Random impostors: OFF';
 
-    function assignRoles(){
-      const arr = Array(state.players).fill('WORD');
-      const impCount = Math.min(state.impostors, state.players);
-      const used = new Set();
-      while(used.size < impCount) used.add(Math.floor(Math.random()*state.players));
-      for(const i of used) arr[i] = 'IMPOSTOR';
-      state.assignments = arr;
-      state.impostorAlts = Array(state.players).fill(null);
-      if(mode === 'dark'){
-        const alts = [];
-        for(let i=0;i<state.players;i++){
-          if(arr[i] === 'IMPOSTOR'){
-            const alt = pickSimilar(state.word, el('darkDifficulty')?.value || 'easy');
-            state.impostorAlts[i] = alt;
-            alts.push(alt);
-          }
-        }
-        alts.forEach(a => prefetchCardImage(a));
+      el('impostors').disabled = state.randomImpostors;
+      el('impostors').style.opacity = state.randomImpostors ? '0.6' : '1';
+
+      if(state.randomImpostors){
+        el('impostors').value = String(state.impostors); // keep internal value, but disabled
       }
-      state.turn = 0; state.revealed = false; state.history = [];
+    }
+
+    function resetSetup(){
+      setPlayers(4);
+      state.impostors = 1;
+      el('impostors').value = '1';
+      setRandomImpostors(false);
+      el('difficulty').value = 'medium';
+      setMode('clash');
+    }
+
+    // =========================
+    // 5) ROUND MODE CHOICE
+    // =========================
+    function chooseRoundMode(){
+      if(state.selectedMode !== 'random') return state.selectedMode;
+
+      // Random per round (switches every new round)
+      const modes = ['clash','dark','darkWild'];
+      return modes[Math.floor(Math.random()*modes.length)];
+    }
+
+    function chooseImpostorCount(players){
+      if(!state.randomImpostors) return Math.max(0, Math.min(players, state.impostors));
+
+      // Weighted random: mostly 1..players-1, rarely 0 or all players.
+      if(players <= 0) return 0;
+      if(players === 1) return Math.random() < 0.5 ? 0 : 1;
+
+      const r = Math.random();
+      if(r < 0.10) return 0;
+      if(r > 0.90) return players;
+
+      // 1..players-1
+      return 1 + Math.floor(Math.random() * (players - 1));
+    }
+
+    // =========================
+    // 6) CARD META + SIMILARITY ENGINE
+    //    (stats ignored; semantic/visual/role based)
+    // =========================
+    const SPELLS = new Set([
+      'Arrows','Zap','Giant Snowball','Royal Delivery','Fireball','Rocket','Earthquake','Rage','Goblin Barrel','Freeze','Mirror','Lightning','Poison','Tornado','Clone','Barbarian Barrel','Void','Goblin Curse','Vines','Graveyard','The Log'
+    ]);
+
+    const BUILDINGS = new Set([
+      'Cannon','Mortar','Tesla','Goblin Hut','Inferno Tower','Bomb Tower','Barbarian Hut','Elixir Collector','Tombstone','Furnace','Goblin Cage','X-Bow','Goblin Drill'
+    ]);
+
+    const AIR_TROOPS = new Set([
+      'Minions','Minion Horde','Bats','Baby Dragon','Inferno Dragon','Electro Dragon','Skeleton Dragons','Phoenix','Mega Minion','Flying Machine','Lava Hound','Balloon'
+    ]);
+
+    // Role buckets (coarse, for similarity)
+    const WINCONS = new Set(['Hog Rider','Balloon','Giant','Golem','Lava Hound','Goblin Giant','Royal Giant','Miner','Graveyard','Goblin Barrel','Goblin Drill','Battle Ram','Ram Rider','X-Bow','Mortar','Elixir Golem','Electro Giant','Three Musketeers']);
+    const TANKS = new Set(['Giant','Golem','Lava Hound','Royal Giant','Goblin Giant','Electro Giant','P.E.K.K.A','Mega Knight','Giant Skeleton','Elixir Golem','Rune Giant']);
+    const CONTROL = new Set(['Tornado','Freeze','Ice Wizard','Electro Wizard','Zappies','Lightning','Bowler','Fisherman','Monk','Vines','Earthquake','Poison','The Log','Giant Snowball','Zap']);
+    const SPAWNERS = new Set(['Witch','Night Witch','Tombstone','Goblin Hut','Barbarian Hut','Furnace','Goblin Drill','Goblin Cage','Graveyard','Royal Delivery','Mother Witch','Goblin Curse']);
+    const SIEGE = new Set(['X-Bow','Mortar']);
+    const ECONOMY = new Set(['Elixir Collector']);
+
+    // Strong named/theme families
+    const FAMILY_KEYWORDS = [
+      'goblin','skeleton','ice','electro','dragon','spirit','royal','barbarian','witch','giant','golem','hog','miner','bandit','wizard','knight','prince','monk','phoenix','inferno','poison','log','bomb','cannon','mortar','tesla','xbow','grave'
+    ];
+
+    // Manual overrides for the special cards you described (visual/identity)
+    const OVERRIDE_TAGS = {
+      'Mother Witch': { visuals:['granny','blue eyes','purple','pink'], families:['witch','curse','hog'], mechanics:['curse','transform','spawn'] },
+      'Phoenix': { visuals:['phoenix','fire bird','egg'], families:['phoenix','fire'], mechanics:['revive','egg','death_damage'] },
+      'Goblin Machine': { visuals:['baby goblin','goggles','machine','rocket'], families:['goblin','machine'], mechanics:['rocket','hybrid'] },
+      'Spirit Empress': { visuals:['gold armor','blonde','blue dragon','two forms'], families:['spirit','royal','dragon'], mechanics:['dual_form','air_ground'] },
+      'Mighty Miner': { visuals:['orange mustache','helmet','drill'], families:['miner','machine'], mechanics:['ramp_damage','lane_swap','bomb'] },
+      'Skeleton King': { visuals:['crown','spiked club'], families:['skeleton','royal'], mechanics:['soul','summon'] },
+      'Archer Queen': { visuals:['purple hair','crown','cape'], families:['royal','archer'], mechanics:['cloak','speed_boost'] },
+      'Golden Knight': { visuals:['gold armor','gold hair','blue eyes'], families:['royal','knight'], mechanics:['dash_chain'] },
+      'Monk': { visuals:['bald','beads','white beard','reflect'], families:['monk'], mechanics:['reflect','combo','pushback'] },
+      'Little Prince': { visuals:['kid','crown','crossbow','guardian'], families:['royal','prince'], mechanics:['ramp_speed','summon_guardian'] },
+      'Goblinstein': { visuals:['scientist goblin','big monster','electric link'], families:['goblin','electric'], mechanics:['stun','dual_unit','ability'] },
+      'Boss Bandit': { visuals:['red hair','cape','covered face'], families:['bandit'], mechanics:['dash','invis','teleport','grenades'] }
+    };
+
+    function cardType(name){
+      if(SPELLS.has(name)) return 'spell';
+      if(BUILDINGS.has(name)) return 'building';
+      return 'troop';
+    }
+
+    function movement(name){
+      const t = cardType(name);
+      if(t === 'building') return 'static';
+      if(t === 'spell') return 'spell';
+      return AIR_TROOPS.has(name) ? 'air' : 'ground';
+    }
+
+    function baseRoles(name){
+      const roles = new Set();
+      if(WINCONS.has(name)) roles.add('wincon');
+      if(TANKS.has(name)) roles.add('tank');
+      if(CONTROL.has(name)) roles.add('control');
+      if(SPAWNERS.has(name)) roles.add('spawner');
+      if(SIEGE.has(name)) roles.add('siege');
+      if(ECONOMY.has(name)) roles.add('economy');
+
+      // fallback
+      if(roles.size === 0){
+        const t = cardType(name);
+        if(t === 'spell') roles.add('spell');
+        else if(t === 'building') roles.add('defense');
+        else roles.add('dps');
+      }
+      return [...roles];
+    }
+
+    function inferFamilies(name){
+      const low = name.toLowerCase();
+      const fam = new Set();
+
+      // keyword-based
+      for(const k of FAMILY_KEYWORDS){
+        if(low.includes(k)) fam.add(k);
+      }
+
+      // special canonical families
+      if(low.includes('e-wiz') || low.includes('electro')) fam.add('electro');
+      if(low.includes('inferno')) fam.add('inferno');
+      if(low.includes('grave')) fam.add('skeleton');
+      if(low.includes('hog')) fam.add('hog');
+      if(low.includes('barrel')) fam.add('barbarian'); // barbarian barrel
+      if(low.includes('queen') || low.includes('king') || low.includes('prince') || low.includes('knight') || low.includes('royal')) fam.add('royal');
+
+      // overrides
+      const o = OVERRIDE_TAGS[name];
+      if(o?.families) o.families.forEach(x => fam.add(x));
+
+      return [...fam];
+    }
+
+    function inferMechanics(name){
+      const low = name.toLowerCase();
+      const mech = new Set();
+
+      // generic by name
+      if(low.includes('freeze')) mech.add('freeze');
+      if(low.includes('tornado')) mech.add('pull');
+      if(low.includes('zap') || low.includes('electro') || low.includes('lightning') || low.includes('zappies')) mech.add('stun');
+      if(low.includes('poison')) mech.add('dot');
+      if(low.includes('rage')) mech.add('buff');
+      if(low.includes('clone') || low.includes('mirror')) mech.add('copy');
+      if(low.includes('log') || low.includes('snowball') || low.includes('bowler')) mech.add('knockback');
+      if(low.includes('barrel')) mech.add('roll');
+      if(low.includes('drill') || low.includes('miner')) mech.add('burrow');
+      if(low.includes('charge') || low.includes('ram') || low.includes('prince') || low.includes('bandit') || low.includes('knight')) mech.add('charge_dash');
+
+      // category-based
+      if(SPAWNERS.has(name)) mech.add('spawn');
+      if(name === 'Inferno Tower' || name === 'Inferno Dragon') mech.add('ramp');
+      if(name === 'Electro Giant') mech.add('reflect');
+      if(name === 'Phoenix') mech.add('revive');
+
+      // overrides
+      const o = OVERRIDE_TAGS[name];
+      if(o?.mechanics) o.mechanics.forEach(x => mech.add(x));
+
+      return [...mech];
+    }
+
+    function inferVisuals(name){
+      const low = name.toLowerCase();
+      const vis = new Set();
+
+      // very light, but useful
+      if(low.includes('ice') || low.includes('snow')) vis.add('blue');
+      if(low.includes('fire') || low.includes('inferno') || low.includes('phoenix')) vis.add('fire');
+      if(low.includes('electro') || low.includes('zap') || low.includes('lightning') || low.includes('tesla')) vis.add('electric');
+      if(low.includes('goblin')) vis.add('green');
+      if(low.includes('skeleton') || low.includes('grave')) vis.add('undead');
+      if(low.includes('royal') || low.includes('king') || low.includes('queen') || low.includes('prince') || low.includes('knight')) vis.add('crown');
+
+      // overrides (your appearance cues)
+      const o = OVERRIDE_TAGS[name];
+      if(o?.visuals) o.visuals.forEach(x => vis.add(x));
+
+      return [...vis];
+    }
+
+    const CARD_DB = new Map();
+    const SIM_CACHE = new Map(); // key: real|difficulty => ranked list
+
+    function buildCardDB(){
+      CARD_DB.clear();
+      for(const name of CLASH_CARDS){
+        const t = cardType(name);
+        const entry = {
+          name,
+          type: t,
+          move: movement(name),
+          roles: baseRoles(name),
+          families: inferFamilies(name),
+          mechanics: inferMechanics(name),
+          visuals: inferVisuals(name)
+        };
+        CARD_DB.set(name, entry);
+      }
+    }
+
+    function overlapCount(a, b){
+      let c = 0;
+      const setB = new Set(b);
+      for(const x of a) if(setB.has(x)) c++;
+      return c;
+    }
+
+    function similarityScore(real, cand){
+      const A = CARD_DB.get(real);
+      const B = CARD_DB.get(cand);
+      if(!A || !B) return -Infinity;
+      if(real === cand) return -Infinity;
+
+      let s = 0;
+
+      // Type + movement (strong)
+      if(A.type === B.type) s += 6;
+      if(A.move === B.move) s += 3;
+
+      // Roles / families / mechanics / visuals
+      const roleOv = overlapCount(A.roles, B.roles);
+      const famOv  = overlapCount(A.families, B.families);
+      const mecOv  = overlapCount(A.mechanics, B.mechanics);
+      const visOv  = overlapCount(A.visuals, B.visuals);
+
+      s += Math.min(10, roleOv * 5);
+      s += Math.min(10, famOv  * 3);
+      s += Math.min(12, mecOv  * 4);
+      s += Math.min(6,  visOv  * 2);
+
+      // Encourage "same theme even across types" (spells/buildings impersonating troops)
+      if(A.type !== B.type && famOv >= 2) s += 3;
+      if(A.type !== B.type && mecOv >= 2) s += 2;
+
+      // Small penalty if wildly different and nothing overlaps
+      if(roleOv === 0 && famOv === 0 && mecOv === 0) s -= 6;
+
+      return s;
+    }
+
+    function rankedCandidates(real, difficulty){
+      const key = `${real}__${difficulty}`;
+      if(SIM_CACHE.has(key)) return SIM_CACHE.get(key);
+
+      const scored = [];
+      for(const c of CLASH_CARDS){
+        if(c === real) continue;
+        scored.push({ c, s: similarityScore(real, c) });
+      }
+      scored.sort((a,b)=>b.s-a.s);
+
+      // Difficulty: filter/shape pool (not just thresholds)
+      let pool = scored;
+
+      if(difficulty === 'easy'){
+        // very strict: take top 12, but only if somewhat aligned
+        pool = scored.filter(x => x.s >= 10).slice(0, 12);
+        if(pool.length < 6) pool = scored.slice(0, 10);
+      } else if(difficulty === 'medium'){
+        pool = scored.filter(x => x.s >= 7).slice(0, 28);
+        if(pool.length < 10) pool = scored.slice(0, 20);
+      } else { // hard
+        pool = scored.filter(x => x.s >= 4).slice(0, 45);
+        if(pool.length < 14) pool = scored.slice(0, 30);
+      }
+
+      SIM_CACHE.set(key, pool);
+      return pool;
+    }
+
+    function weightedPickTop(pool){
+      // pool is sorted-ish; weight favors earlier entries strongly
+      if(!pool.length) return null;
+      const n = pool.length;
+      // weights: 1/(i+1)^1.2
+      let sum = 0;
+      const weights = [];
+      for(let i=0;i<n;i++){
+        const w = 1 / Math.pow(i+1, 1.2);
+        weights.push(w);
+        sum += w;
+      }
+      let r = Math.random() * sum;
+      for(let i=0;i<n;i++){
+        r -= weights[i];
+        if(r <= 0) return pool[i].c;
+      }
+      return pool[0].c;
+    }
+
+    function pickFakeCard(real, difficulty, avoidSet){
+      const pool = rankedCandidates(real, difficulty).filter(x => x.c !== real);
+      if(!pool.length) return CLASH_CARDS[Math.floor(Math.random()*CLASH_CARDS.length)];
+
+      // Avoid repeating last round fakes if possible
+      const filtered = pool.filter(x => !avoidSet.has(x.c));
+      const finalPool = filtered.length >= 6 ? filtered : pool;
+
+      return weightedPickTop(finalPool);
+    }
+
+    // =========================
+    // 7) ROUND GENERATION
+    // =========================
+    function pickRealCard(){
+      // Avoid repeating the exact same real card if possible
+      let pick = null;
+      for(let tries=0; tries<6; tries++){
+        const c = CLASH_CARDS[Math.floor(Math.random()*CLASH_CARDS.length)];
+        if(c !== state.lastReal){
+          pick = c;
+          break;
+        }
+        pick = c;
+      }
+      return pick;
+    }
+
+    function assignRoles(impostorCount){
+      const roles = Array(state.players).fill('REAL');
+      const idx = shuffle([...Array(state.players)].map((_,i)=>i));
+      for(let i=0;i<impostorCount;i++){
+        roles[idx[i]] = 'IMPOSTOR';
+      }
+      state.assignments = roles;
+    }
+
+    function assignFakeCardsForDarkModes(){
+      state.fakeCards = Array(state.players).fill(null);
+      const avoid = new Set(state.lastFakes);
+
+      if(state.roundMode === 'dark'){
+        const fake = pickFakeCard(state.realCard, state.difficulty, avoid);
+        for(let i=0;i<state.players;i++){
+          if(state.assignments[i] === 'IMPOSTOR') state.fakeCards[i] = fake;
+        }
+        prefetchCardImage(fake);
+        return;
+      }
+
+      if(state.roundMode === 'darkWild'){
+        const used = new Set();
+        for(let i=0;i<state.players;i++){
+          if(state.assignments[i] !== 'IMPOSTOR') continue;
+
+          // avoid duplicates within the round if possible
+          const localAvoid = new Set([...avoid, ...used]);
+          let fake = pickFakeCard(state.realCard, state.difficulty, localAvoid);
+
+          // fallback: if still collides, try a couple rerolls from ranked pool
+          if(used.has(fake)){
+            const pool = rankedCandidates(state.realCard, state.difficulty).map(x=>x.c);
+            for(const candidate of pool){
+              if(candidate !== state.realCard && !used.has(candidate) && !avoid.has(candidate)){
+                fake = candidate; break;
+              }
+            }
+          }
+
+          state.fakeCards[i] = fake;
+          used.add(fake);
+          prefetchCardImage(fake);
+        }
+        return;
+      }
+    }
+
+    function beginRound(){
+      readSetup();
+
+      state.roundMode = chooseRoundMode();
+      const impCount = chooseImpostorCount(state.players);
+
+      // pick real card + prefetch
+      state.realCard = pickRealCard();
+      prefetchCardImage(state.realCard);
+
+      assignRoles(impCount);
+
+      // assign fakes (only in dark modes)
+      if(state.roundMode === 'dark' || state.roundMode === 'darkWild'){
+        assignFakeCardsForDarkModes();
+      } else {
+        state.fakeCards = Array(state.players).fill(null);
+      }
+
+      // reset pass flow
+      state.turn = 0;
+      state.revealed = false;
+      state.history = [];
+
+      // update repetition memory
+      state.lastReal = state.realCard;
+      state.lastFakes = new Set(state.fakeCards.filter(Boolean));
+
+      show('pass');
+      updatePassUI();
+    }
+
+    // =========================
+    // 8) PASS SCREEN RENDERING
+    // =========================
+    function modeLabel(m){
+      if(m==='clash') return 'Clash Royale Impostor';
+      if(m==='dark') return 'In the Dark';
+      if(m==='darkWild') return 'In the Dark (Wild)';
+      return 'Random Mode';
+    }
+
+    function cardForCurrentPlayer(){
+      const role = state.assignments[state.turn];
+      const isImp = role === 'IMPOSTOR';
+
+      if(state.roundMode === 'clash'){
+        if(isImp) return { text:'IMPOSTOR', color:'var(--danger)', img:'__IMPOSTOR__', showName:false };
+        return { text:state.realCard, color:'var(--text)', img:state.realCard, showName:true };
+      }
+
+      // dark / darkWild: no impostor label
+      if(isImp){
+        const fake = state.fakeCards[state.turn] || state.realCard;
+        return { text:fake, color:'var(--text)', img:fake, showName:true };
+      }
+      return { text:state.realCard, color:'var(--text)', img:state.realCard, showName:true };
     }
 
     function updatePassUI(){
       el('turnInfo').textContent = `Player ${state.turn+1} / ${state.players}`;
-      const img = el('cardImg');
 
+      const img = el('cardImg');
       if(!state.revealed){
         el('wordText').textContent = 'Tap to reveal';
         el('wordText').style.color = 'var(--text)';
@@ -236,290 +738,109 @@
         el('toggleBtn').textContent = 'Reveal';
         img.removeAttribute('src');
         img.style.display = 'none';
+        return;
+      }
+
+      const info = cardForCurrentPlayer();
+      el('wordText').textContent = info.text;
+      el('wordText').style.color = info.color;
+
+      // image
+      if(state.roundMode === 'clash' && info.text === 'IMPOSTOR' && !IMPOSTOR_IMAGE_URL){
+        img.removeAttribute('src');
+        img.style.display='none';
       } else {
-        const isImp = state.assignments[state.turn] === 'IMPOSTOR';
-        let roleText, cardName;
-        if(isImp && mode === 'dark'){
-          cardName = state.impostorAlts[state.turn] || state.word;
-          roleText = cardName;
-          el('wordText').style.color = 'var(--text)';
-          setCardImage(cardName);
-        } else if(isImp){
-          roleText = 'IMPOSTOR';
-          el('wordText').style.color = 'var(--danger)';
-          img.removeAttribute('src'); img.style.display='none';
+        setCardImageByName(info.img);
+      }
+
+      // hint line
+      if(state.turn === state.players-1){
+        el('hint').textContent = 'Last player revealed. Tap again to finish.';
+        el('toggleBtn').textContent = 'Finish Round';
+      } else {
+        // Mode-specific guidance
+        if(state.roundMode === 'clash'){
+          el('hint').textContent = 'Tap Next Player and pass the phone.';
         } else {
-          cardName = state.word;
-          roleText = state.word;
-          el('wordText').style.color = 'var(--text)';
-          setCardImage(cardName);
+          el('hint').textContent = 'Don’t say the card name. Describe it vaguely, then pass the phone.';
         }
-        el('wordText').textContent = roleText;
-        el('hint').textContent = state.turn === state.players-1 ? 'Last player revealed. Tap again to finish.' : 'Tap Next Player and pass the phone.';
-        el('toggleBtn').textContent = state.turn === state.players-1 ? 'Finish Round' : 'Next Player';
+        el('toggleBtn').textContent = 'Next Player';
       }
     }
 
     function nextTurn(){
-      state.history.push({ player: state.turn+1, role: state.assignments[state.turn] });
+      state.history.push({ player: state.turn+1, role: state.assignments[state.turn], shown: cardForCurrentPlayer().text });
       state.turn++;
       state.revealed = false;
+
       if(state.turn >= state.players){
-        show('summary');
-        el('impostorList').classList.add('hidden');
-        el('impostorList').textContent = '';
+        showSummary();
         return;
       }
       updatePassUI();
     }
 
-    // -------------- Events ------------------
-    el('players').addEventListener('input', () => {
-      state.players = Math.max(3, Math.min(20, parseInt(el('players').value || '6')));
-      clampImpostors();
-    });
+    function showSummary(){
+      show('summary');
+
+      const impPlayers = state.history.filter(h => h.role === 'IMPOSTOR').map(h => `Player ${h.player}`);
+      const impCount = impPlayers.length;
+
+      el('roundInfoPill').textContent = `${modeLabel(state.roundMode)} • Real card: ${state.realCard}`;
+      if(state.roundMode === 'clash'){
+        el('summaryText').innerHTML =
+          `Most players saw <b>${state.realCard}</b>. Impostors saw <b style="color:var(--danger)">IMPOSTOR</b>. Discuss clues without saying the name.`;
+      } else {
+        const uniqueFakes = [...new Set(state.fakeCards.filter(Boolean))];
+        const fakesText = uniqueFakes.length ? uniqueFakes.join(', ') : '(none)';
+        el('summaryText').innerHTML =
+          `Most players saw <b>${state.realCard}</b>. Impostors saw a <b>similar</b> card instead. Difficulty: <b>${state.difficulty}</b>.<br/><span style="color:var(--muted)">Fake card(s) used this round: ${fakesText}</span>`;
+      }
+
+      el('impostorList').classList.add('hidden');
+      el('impostorList').textContent = impCount ? `Impostors: ${impPlayers.join(', ')}` : 'Impostors: none';
+    }
+
+    // =========================
+    // 9) EVENTS
+    // =========================
+    el('modeClash').onclick = () => setMode('clash');
+    el('modeDark').onclick = () => setMode('dark');
+    el('modeDarkWild').onclick = () => setMode('darkWild');
+    el('modeRandom').onclick = () => setMode('random');
+
+    el('playersMinus').onclick = () => setPlayers(state.players - 1);
+    el('playersPlus').onclick  = () => setPlayers(state.players + 1);
+
     el('impostors').addEventListener('input', () => {
-      state.impostors = parseInt(el('impostors').value || '1');
-      clampImpostors();
+      state.impostors = parseInt(el('impostors').value || '0', 10);
+      if(Number.isNaN(state.impostors)) state.impostors = 0;
+      state.impostors = Math.max(0, Math.min(state.players, state.impostors));
+      el('impostors').value = String(state.impostors);
     });
 
-    el('begin').onclick = () => { readSetup(); randomWord(); assignRoles(); show('pass'); updatePassUI(); };
-    el('resetAllSetup').onclick = () => { el('players').value = '6'; el('impostors').value = '1'; state.players=6; state.impostors=1; };
-    el('toggleBtn').onclick = () => { if(!state.revealed){ state.revealed = true; updatePassUI(); } else { nextTurn(); } };
+    el('toggleRandomImps').onclick = () => setRandomImpostors(!state.randomImpostors);
+
+    el('begin').onclick = () => beginRound();
+    el('resetAllSetup').onclick = () => resetSetup();
+    el('toggleBtn').onclick = () => {
+      if(!state.revealed){
+        state.revealed = true;
+        updatePassUI();
+      } else {
+        nextTurn();
+      }
+    };
     el('showImpostors').onclick = () => {
-      const list = state.history.filter(h => h.role === 'IMPOSTOR').map(h => `Player ${h.player}`).join(', ');
-      el('impostorList').textContent = list ? `Impostors: ${list}` : 'No impostors recorded.';
       el('impostorList').classList.remove('hidden');
     };
-    el('playAgain').onclick = () => { show('setup'); };
+    el('playAgain').onclick = () => show('setup');
 
-    // -------- Mode switching --------
-    function setMode(newMode){
-      mode = newMode;
-      el('modeClash').classList.toggle('primary', mode==='clash');
-      el('modeDark').classList.toggle('primary', mode==='dark');
-      el('darkControls').style.display = mode==='dark' ? 'grid' : 'none';
-    }
-    el('modeClash').onclick = () => setMode('clash');
-    el('modeDark').onclick = () => setMode('dark');
-
-    // -------- Taxonomy + traits --------
-    const SPELLS = new Set(['Arrows','Zap','Snowball','Rage','Clone','Mirror','Fireball','Poison','Rocket','Lightning','Earthquake','Tornado','The Log','Barbarian Barrel','Royal Delivery','Heal Spirit']);
-    const BUILDINGS = new Set(['X-Bow','Mortar','Cannon','Bomb Tower','Tesla','Inferno Tower','Furnace','Tombstone','Goblin Cage','Goblin Hut','Barbarian Hut','Elixir Collector','Goblin Drill']);
-
-    // Spells/buildings damage style
-    const SPLASH_SPELLS = new Set(['Arrows','Fireball','Poison','Rocket','Lightning','Earthquake','Tornado','The Log','Royal Delivery','Barbarian Barrel','Snowball']);
-    const SINGLE_SPELLS = new Set(['Zap','Rage','Clone','Mirror','Heal Spirit']);
-    const SPLASH_BUILDINGS = new Set(['Bomb Tower','Mortar']);
-    const SINGLE_BUILDINGS = new Set(['Cannon','Tesla','Inferno Tower','X-Bow','Goblin Cage']);
-    const NON_DAMAGE_BUILDINGS = new Set(['Furnace','Tombstone','Goblin Hut','Barbarian Hut','Elixir Collector','Goblin Drill']);
-
-    // Movement + swarm
-    const AIR_TROOPS = new Set(['Minions','Minion Horde','Baby Dragon','Inferno Dragon','Electro Dragon','Skeleton Dragons','Phoenix','Mega Minion','Flying Machine','Lava Hound','Balloon']);
-    const SWARM_TROOPS = new Set(['Minion Horde','Bats','Barbarians','Royal Recruits','Royal Hogs','Goblin Gang','Skeleton Army']);
-
-    // Tower-only style + roles
-    const TOWER_ONLY = new Set(['Hog Rider','Giant','Goblin Giant','Royal Giant','Balloon','Battle Ram','Golem','Goblin Drill']);
-    const WINCONS = new Set(['Hog Rider','Giant','Goblin Giant','Royal Giant','Balloon','X-Bow','Mortar','Graveyard','Miner','Ram Rider','Battle Ram','Goblin Drill','Elixir Golem','Electro Giant','Golem','Lava Hound','Three Musketeers','Sparky']);
-    const TANKS = new Set(['Giant','Goblin Giant','Royal Giant','Golem','Electro Giant','P.E.K.K.A','Mega Knight','Giant Skeleton','Lava Hound','Elixir Golem','Rune Giant']);
-    const SUPPORT = new Set(['Ice Golem','Ice Wizard','Wizard','Electro Wizard','Magic Archer','Mother Witch','Fisherman','Battle Healer','Monk','Heal Spirit','Tornado','Rage','Mirror','Clone','Royal Delivery','Elixir Collector','Furnace','Goblin Hut','Barbarian Hut','Tombstone','Goblin Cage']);
-    const DISTRACTIONS = new Set(['Skeletons','Ice Spirit','Fire Spirits','Bats','Spear Goblins','Goblins','Goblin Gang','Guards','Ice Golem','Tombstone']);
-
-    // Troop damage styles (single/splash) for ground/air troops
-    const TROOP_SPLASH = new Set([
-      'Wizard','Ice Wizard','Bomber','Valkyrie','Dark Prince','Baby Dragon','Electro Dragon','Sparky','Executioner','Bowler'
-    ].filter(Boolean)); // ignore not-in-list safely
-
-    function troopDamageType(name){
-      if (cardType(name) !== 'troop') return null;
-      return TROOP_SPLASH.has(name) ? 'splash' : 'single';
-    }
-
-    // Elemental / family affinities
-    const AFFINITIES = new Map([
-      ['ice', new Set(['Ice Spirit','Ice Golem','Ice Wizard'])],
-      ['electro', new Set(['Zap','Zappies','Electro Wizard','Electro Dragon','Electro Giant'])],
-      ['goblin', new Set(['Spear Goblins','Goblins','Goblin Gang','Goblin Barrel','Goblin Cage','Goblin Drill','Goblin Giant','Dart Goblin','Goblin Machine','Goblin Demolisher','Goblinstein'])],
-      ['skeleton', new Set(['Skeletons','Skeleton Army','Tombstone','Giant Skeleton','Skeleton Dragons','Skeleton King','Witch','Graveyard'])],
-      ['bat', new Set(['Bats','Night Witch'])],
-      ['fire', new Set(['Fireball','Fire Spirits','Furnace','Phoenix'])]
-    ]);
-
-    // Direct related pairs (spawn / obvious family)
-    const RELATED = new Map([
-      ['Night Witch', new Set(['Bats'])],
-      ['Witch', new Set(['Skeletons','Skeleton Army','Graveyard'])],
-      ['Goblin Gang', new Set(['Spear Goblins','Goblins'])],
-      ['Electro Wizard', new Set(['Zappies','Zap'])],
-      ['Ice Wizard', new Set(['Ice Spirit'])],
-    ]);
-
-    // Custom overrides (your extra cards)
-    const CUSTOM_OVERRIDES = new Map([
-      ['Spirit Empress', { role:'support' }],
-      ['Berserker', { role:'damage' }],
-      ['Goblin Curse', { type:'spell', dmg:'splash', role:'support' }],
-      ['Goblin Machine', { type:'building', dmg:'none', role:'support' }],
-      ['Void', { type:'spell', dmg:'splash', role:'damage' }],
-      ['Vines', { type:'spell', dmg:'single', role:'support' }],
-      ['Goblin Demolisher', { role:'damage', towerOnly:true }],
-      ['Suspicious Bush', { type:'building', dmg:'none', role:'support' }],
-      ['Rune Giant', { role:'tank', towerOnly:true }],
-      ['Little Prince', { role:'damage' }],
-      ['Goblinstein', { role:'tank' }]
-    ]);
-
-    // ---------- Derived helpers ----------
-    function cardType(name){
-      const o = CUSTOM_OVERRIDES.get(name); if(o?.type) return o.type;
-      return SPELLS.has(name) ? 'spell' : (BUILDINGS.has(name) ? 'building' : 'troop');
-    }
-    function damageType(name){
-      const o = CUSTOM_OVERRIDES.get(name); if(o?.dmg !== undefined) return o.dmg;
-      const t = cardType(name);
-      if(t==='spell') return SPLASH_SPELLS.has(name) ? 'splash' : (SINGLE_SPELLS.has(name) ? 'single' : 'none');
-      if(t==='building'){
-        if(NON_DAMAGE_BUILDINGS.has(name)) return 'none';
-        if(SPLASH_BUILDINGS.has(name)) return 'splash';
-        if(SINGLE_BUILDINGS.has(name)) return 'single';
-        return 'none';
-      }
-      return troopDamageType(name); // troop: 'single'|'splash'
-    }
-    function movementType(name){
-      const t = cardType(name);
-      if(t==='building') return 'building';
-      if(t==='troop') return AIR_TROOPS.has(name) ? 'air' : 'ground';
-      return null; // spells
-    }
-    function isSwarm(name){ return cardType(name)==='troop' && SWARM_TROOPS.has(name); }
-    function isTowerOnly(name){
-      const o = CUSTOM_OVERRIDES.get(name); if(o?.towerOnly !== undefined) return !!o.towerOnly;
-      return TOWER_ONLY.has(name);
-    }
-    function isAirTroop(name){ return cardType(name)==='troop' && AIR_TROOPS.has(name); }
-    function targetGroup(name){
-      const t = cardType(name);
-      if (t==='spell') return 'spell';
-      if (t==='building') return 'building';
-      return isAirTroop(name) ? 'air' : 'ground';
-    }
-    function primaryRole(name){
-      if (CUSTOM_OVERRIDES.get(name)?.role) return CUSTOM_OVERRIDES.get(name).role;
-      if (WINCONS.has(name)) return 'wincon';
-      if (TANKS.has(name)) return 'tank';
-      if (DISTRACTIONS.has(name)) return 'distraction';
-      if (SUPPORT.has(name)) return 'damage'; // fold support into damage for role bucket
-      return 'damage';
-    }
-    function affinitiesOf(name){
-      const tags = new Set();
-      for(const [tag,set] of AFFINITIES.entries()){ if(set.has(name)) tags.add(tag); }
-      return tags;
-    }
-    function relatedSet(name){
-      const s = new Set(RELATED.get(name) || []);
-      // also include reverse relations
-      for(const [k,v] of RELATED.entries()){
-        if(v.has(name)) s.add(k);
-      }
-      return s;
-    }
-
-    function meta(name){
-      return {
-        type: cardType(name),                 // 'spell'|'building'|'troop'
-        group: targetGroup(name),             // 'spell'|'building'|'ground'|'air'
-        dmg: damageType(name),                // 'single'|'splash'|'none'
-        move: movementType(name),             // 'building'|'ground'|'air'|null
-        towerOnly: isTowerOnly(name),         // boolean
-        role: primaryRole(name),              // 'wincon'|'tank'|'distraction'|'damage'
-        swarm: isSwarm(name),                 // boolean
-        affinities: affinitiesOf(name),       // Set of tags
-        related: relatedSet(name)             // Set of direct related cards
-      };
-    }
-
-    // ---------- Precise, staged similarity ----------
-    function rankScore(base, cand){
-      const A = meta(base), B = meta(cand);
-      let s = 0;
-      // Post-filter ranking weights
-      if (A.towerOnly === B.towerOnly) s += 3;
-      if (A.dmg === B.dmg) s += 2;                // includes troop single/splash now
-      if (A.role === B.role) s += 2;
-      if (A.swarm === B.swarm) s += 1;
-
-      // Affinity / related bonuses
-      const affOverlap = [...A.affinities].some(x => B.affinities.has(x));
-      if (affOverlap) s += 2;
-      if (A.related.has(cand)) s += 3;            // direct relation (e.g., Night Witch ↔ Bats)
-      return s;
-    }
-
-    function pickTopRandom(scored){
-      if(!scored.length) return undefined;
-      const sorted = scored.slice().sort((a,b)=>b.s-a.s);
-      const top = sorted[0].s;
-      const topGroup = sorted.filter(x=>x.s===top);
-      return topGroup[Math.floor(Math.random()*topGroup.length)].c;
-    }
-
-    function pickSimilar(base, difficulty='easy'){
-      const A = meta(base);
-      const candidates = CLASH_CARDS.filter(c => c !== base);
-
-      // 1) START POOL by group: spell | building | ground | air
-      let pool = candidates.filter(c => meta(c).group === A.group);
-      if(!pool.length && (A.group==='air' || A.group==='ground')){
-        pool = candidates.filter(c => meta(c).type === 'troop');
-      }
-
-      // 2) STRICT FILTERS (priority): towerOnly → dmg type (spells/buildings + troop single/splash) → role
-      const stagesByDiff = { easy: 3, medium: 2, hard: 1, chaos: 0 };
-      let stage = stagesByDiff[difficulty] ?? 3;
-
-      const tests = [];
-      tests.push((M)=> M.towerOnly === A.towerOnly);
-      tests.push((M)=> M.dmg === A.dmg);
-      tests.push((M)=> M.role === A.role);
-
-      let narrowed = [];
-      while(stage >= 0 && !narrowed.length){
-        narrowed = pool.filter(c => {
-          const M = meta(c);
-          for(let i=0;i<stage;i++){
-            if(!tests[i]) break;
-            if(!tests[i](M)) return false;
-          }
-          return true;
-        });
-        stage--;
-      }
-      pool = narrowed.length ? narrowed : pool;
-
-      // 3) Hard: sometimes allow best overall within same group
-      if(difficulty==='hard' && Math.random()<0.4){
-        const scoredAll = pool.map(c => ({ c, s: rankScore(base, c) }));
-        const pick = pickTopRandom(scoredAll);
-        if(pick) return pick;
-      }
-
-      // 4) Rank + tie-break
-      const scored = pool.map(c => ({ c, s: rankScore(base, c) }));
-      const choice = pickTopRandom(scored);
-      return choice || candidates[Math.floor(Math.random()*candidates.length)];
-    }
-
-    // -------- Mode switching bindings --------
-    function setMode(newMode){
-      mode = newMode;
-      el('modeClash').classList.toggle('primary', mode==='clash');
-      el('modeDark').classList.toggle('primary', mode==='dark');
-      el('darkControls').style.display = mode==='dark' ? 'grid' : 'none';
-    }
-    el('modeClash').onclick = () => setMode('clash');
-    el('modeDark').onclick = () => setMode('dark');
+    // =========================
+    // 10) INIT
+    // =========================
+    buildCardDB();
+    resetSetup();
   </script>
 </body>
 </html>
