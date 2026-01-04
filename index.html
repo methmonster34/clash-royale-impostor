@@ -399,7 +399,10 @@
       'Goblinstein': { visuals:['scientist goblin','big monster','electric link'], families:['goblin','electro'], mechanics:['stun','dual_unit','ability'] },
       'Boss Bandit': { visuals:['red hair','cape','covered face'], families:['bandit'], mechanics:['dash','invis','teleport','grenades'] }
     };
-
+// Treat these silhouettes as "real" physical matches (humanoid is too generic)
+const STRONG_SILHOUETTES = new Set([
+  'dragon','undead','goblin','big','spawner','flying','building','spell'
+]);
     function cardType(name){
       if(SPELLS.has(name)) return 'spell';
       if(BUILDINGS.has(name)) return 'building';
@@ -585,19 +588,62 @@
     // =========================
     // NEW coreMatchCount (no generic inflation)
     // =========================
-    function coreMatchCount(A, B, ns){
-      let core = 0;
+   function similarityScore(real, cand){
+  const A = CARD_DB.get(real);
+  const B = CARD_DB.get(cand);
+  if(!A || !B || real === cand) return -Infinity;
 
-      if(A.element && A.element === B.element) core++;
-      if(overlapCount(A.families, B.families) >= 1) core++;
-      if(overlapCount(A.mechanics, B.mechanics) >= 1) core++;
-      if(ns >= 0.30) core++;
+  const ns = nameSim(real, cand);
 
-      if(!GENERIC_PRIMARY.has(A.primary) && A.primary === B.primary) core++;
-      if(!GENERIC_SIL.has(A.silhouette) && A.silhouette === B.silhouette) core++;
+  const famOv = overlapCount(A.families, B.families);
+  const mecOv = overlapCount(A.mechanics, B.mechanics);
+  const visOv = overlapCount(A.visuals, B.visuals);
 
-      return core;
-    }
+  const elementMatch = (A.element && A.element === B.element);
+
+  const typeMatch = (A.type === B.type);
+  const moveMatch = (A.move === B.move);
+
+  const silSame = (A.silhouette === B.silhouette);
+  const strongSilMatch = silSame && STRONG_SILHOUETTES.has(A.silhouette);
+  const weakSilMatch = silSame && !strongSilMatch; // usually "humanoid"
+
+  const roleMatch = (A.primary === B.primary);
+
+  // ----------------------------
+  // Scoring: Element + Physical >> Name
+  // ----------------------------
+  let s = 0;
+
+  // 1) ELEMENT (biggest)
+  if(elementMatch) s += 36;
+
+  // 2) PHYSICAL PROFILE
+  s += typeMatch ? 22 : -14;
+  s += moveMatch ? 14 : 0;
+  if(strongSilMatch) s += 22;
+  else if(weakSilMatch) s += 6; // humanoid is weak
+
+  // 3) SUPPORTING SIGNALS (smaller)
+  s += roleMatch ? 6 : -3;                 // mismatch penalty helps Hut vs Collector
+  s += Math.min(10, famOv * 3);
+  s += Math.min(10, mecOv * 4);
+  s += Math.min(6,  visOv * 2);
+
+  // 4) NAME LAST
+  s += ns * 16;
+
+  // Kill "generic troop matches" with no real connection (Wizard ↔ Guards type junk)
+  const weakPhysicalOnly =
+    typeMatch && moveMatch && weakSilMatch &&
+    !elementMatch && famOv === 0 && mecOv === 0 && ns < 0.25;
+
+  if(weakPhysicalOnly) s -= 22;
+
+  return { score: s, ns };
+}
+
+
 
     // =========================
     // NEW similarityScore (anchor enforcement)
@@ -678,20 +724,46 @@
         const B = CARD_DB.get(c);
         const famOv = overlapCount(A.families, B.families);
         const core = coreMatchCount(A, B, base.ns);
+        const elementMatch = (A.element && A.element === B.element);
+const strongSilMatch = (A.silhouette === B.silhouette && STRONG_SILHOUETTES.has(A.silhouette));
+const mecOv = overlapCount(A.mechanics, B.mechanics);
+const samePrimary = (A.primary === B.primary);
+
+// Anchor rule: must share element OR meaningful physical OR name/family/mechanic signal
+let anchorOk = false;
+
+if(A.type === 'troop'){
+  anchorOk =
+    elementMatch ||
+    strongSilMatch ||
+    famOv >= 1 ||
+    mecOv >= 1 ||
+    base.ns >= 0.34;
+} else {
+  // buildings/spells: DON'T allow "just building" as similarity.
+  anchorOk =
+    elementMatch ||
+    samePrimary ||
+    famOv >= 1 ||
+    mecOv >= 1 ||
+    base.ns >= 0.34;
+}
+
+if(!anchorOk) continue;
+
 
         let s = base.score;
 
         // ✅ thresholds adjusted for the new core definition
         if(difficulty === 'easy'){
-          if(core < 3) continue;
-          if(s < 20) continue;
-        } else if(difficulty === 'medium'){
-          if(core < 2) continue;
-          if(s < 14) continue;
-        } else {
-          if(core < 2) continue;
-          s += hardDeceptionBonus(A, B, base.ns, famOv);
-        }
+  if(core < 4) continue;
+} else if(difficulty === 'medium'){
+  if(core < 3) continue;
+} else {
+  if(core < 3) continue;
+  s += hardDeceptionBonus(A, B, base.ns, famOv);
+}
+
 
         out.push({ c, s });
       }
