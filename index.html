@@ -229,6 +229,10 @@
     // 3) GAME STATE
     // =========================
     const state = {
+      recentReals: [],      // last real cards
+recentPairs: [],      // last (real->fake) pairs
+recentRealLimit: 10,
+recentPairLimit: 25,
       players: 4,
       impostors: 1,
       randomImpostors: false,
@@ -778,22 +782,28 @@ function pickFakeCard(real, difficulty, avoidSet = new Set()){
   const slice = use.slice(0, Math.min(topN, use.length));
   return weightedPick(slice);
 }
+function pushLimited(arr, val, limit){
+  arr.push(val);
+  while(arr.length > limit) arr.shift();
+}
 
+function pairKey(real, fake){
+  // include mode + difficulty so "same pair" in different difficulty isn't blocked
+  return `${state.roundMode}|${state.difficulty}|${real}=>${fake}`;
+}
     // =========================
     // 7) ROUND GENERATION
     // =========================
     function pickRealCard(){
-      let pick = null;
-      for(let tries=0; tries<6; tries++){
-        const c = CLASH_CARDS[Math.floor(Math.random()*CLASH_CARDS.length)];
-        if(c !== state.lastReal){
-          pick = c;
-          break;
-        }
-        pick = c;
-      }
-      return pick;
-    }
+  const recent = new Set(state.recentReals);
+  const pool = CLASH_CARDS.filter(c => !recent.has(c));
+  const use = pool.length ? pool : CLASH_CARDS;
+
+  const pick = use[Math.floor(Math.random()*use.length)];
+  pushLimited(state.recentReals, pick, state.recentRealLimit);
+  return pick;
+}
+
 
     function assignRoles(impostorCount){
       const roles = Array(state.players).fill('REAL');
