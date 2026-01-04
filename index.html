@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="google-adsense-account" content="ca-pub-2021683559156386">
   <title>Clash Royale Imposter</title>
   <link rel="preconnect" href="https://raw.githubusercontent.com" />
   <style>
@@ -332,275 +333,406 @@
       return 1 + Math.floor(Math.random() * (players - 1));
     }
 
-    // =========================
-    // 6) CARD META + SIMILARITY ENGINE
-    //    (stats ignored; semantic/visual/role based)
-    // =========================
-    const SPELLS = new Set([
-      'Arrows','Zap','Giant Snowball','Royal Delivery','Fireball','Rocket','Earthquake','Rage','Goblin Barrel','Freeze','Mirror','Lightning','Poison','Tornado','Clone','Barbarian Barrel','Void','Goblin Curse','Vines','Graveyard','The Log'
-    ]);
+   // =========================
+// 6) CARD META + SIMILARITY ENGINE (V2)
+// Better: core-match gating + name similarity + element/silhouette + hard deception bonus
+// =========================
 
-    const BUILDINGS = new Set([
-      'Cannon','Mortar','Tesla','Goblin Hut','Inferno Tower','Bomb Tower','Barbarian Hut','Elixir Collector','Tombstone','Furnace','Goblin Cage','X-Bow','Goblin Drill'
-    ]);
+const SPELLS = new Set([
+  'Arrows','Zap','Giant Snowball','Royal Delivery','Fireball','Rocket','Earthquake','Rage',
+  'Goblin Barrel','Freeze','Mirror','Lightning','Poison','Tornado','Clone','Barbarian Barrel',
+  'Void','Goblin Curse','Vines','Graveyard','The Log','Heal Spirit'
+]);
 
-    const AIR_TROOPS = new Set([
-      'Minions','Minion Horde','Bats','Baby Dragon','Inferno Dragon','Electro Dragon','Skeleton Dragons','Phoenix','Mega Minion','Flying Machine','Lava Hound','Balloon'
-    ]);
+const BUILDINGS = new Set([
+  'Cannon','Mortar','Tesla','Goblin Hut','Inferno Tower','Bomb Tower','Barbarian Hut',
+  'Elixir Collector','Tombstone','Furnace','Goblin Cage','X-Bow','Goblin Drill'
+]);
 
-    // Role buckets (coarse, for similarity)
-    const WINCONS = new Set(['Hog Rider','Balloon','Giant','Golem','Lava Hound','Goblin Giant','Royal Giant','Miner','Graveyard','Goblin Barrel','Goblin Drill','Battle Ram','Ram Rider','X-Bow','Mortar','Elixir Golem','Electro Giant','Three Musketeers']);
-    const TANKS = new Set(['Giant','Golem','Lava Hound','Royal Giant','Goblin Giant','Electro Giant','P.E.K.K.A','Mega Knight','Giant Skeleton','Elixir Golem','Rune Giant']);
-    const CONTROL = new Set(['Tornado','Freeze','Ice Wizard','Electro Wizard','Zappies','Lightning','Bowler','Fisherman','Monk','Vines','Earthquake','Poison','The Log','Giant Snowball','Zap']);
-    const SPAWNERS = new Set(['Witch','Night Witch','Tombstone','Goblin Hut','Barbarian Hut','Furnace','Goblin Drill','Goblin Cage','Graveyard','Royal Delivery','Mother Witch','Goblin Curse']);
-    const SIEGE = new Set(['X-Bow','Mortar']);
-    const ECONOMY = new Set(['Elixir Collector']);
+const AIR_TROOPS = new Set([
+  'Minions','Minion Horde','Bats','Baby Dragon','Inferno Dragon','Electro Dragon',
+  'Skeleton Dragons','Phoenix','Mega Minion','Flying Machine','Lava Hound','Balloon'
+]);
 
-    // Strong named/theme families
-    const FAMILY_KEYWORDS = [
-      'goblin','skeleton','ice','electro','dragon','spirit','royal','barbarian','witch','giant','golem','hog','miner','bandit','wizard','knight','prince','monk','phoenix','inferno','poison','log','bomb','cannon','mortar','tesla','xbow','grave'
-    ];
+// Coarse role buckets (still ok; name/element/silhouette now do more heavy lifting)
+const WINCONS = new Set(['Hog Rider','Balloon','Giant','Golem','Lava Hound','Goblin Giant','Royal Giant','Miner','Graveyard','Goblin Barrel','Goblin Drill','Battle Ram','Ram Rider','X-Bow','Mortar','Elixir Golem','Electro Giant','Three Musketeers']);
+const TANKS = new Set(['Giant','Golem','Lava Hound','Royal Giant','Goblin Giant','Electro Giant','P.E.K.K.A','Mega Knight','Giant Skeleton','Elixir Golem','Rune Giant']);
+const CONTROL = new Set(['Tornado','Freeze','Ice Wizard','Electro Wizard','Zappies','Lightning','Fisherman','Monk','Vines','Earthquake','Poison','The Log','Giant Snowball','Zap']);
+const SPAWNERS = new Set(['Tombstone','Goblin Hut','Barbarian Hut','Furnace','Goblin Drill','Goblin Cage','Graveyard','Royal Delivery','Mother Witch','Goblin Curse']);
+const SIEGE = new Set(['X-Bow','Mortar']);
+const ECONOMY = new Set(['Elixir Collector']);
 
-    // Manual overrides for the special cards you described (visual/identity)
-    const OVERRIDE_TAGS = {
-      'Mother Witch': { visuals:['granny','blue eyes','purple','pink'], families:['witch','curse','hog'], mechanics:['curse','transform','spawn'] },
-      'Phoenix': { visuals:['phoenix','fire bird','egg'], families:['phoenix','fire'], mechanics:['revive','egg','death_damage'] },
-      'Goblin Machine': { visuals:['baby goblin','goggles','machine','rocket'], families:['goblin','machine'], mechanics:['rocket','hybrid'] },
-      'Spirit Empress': { visuals:['gold armor','blonde','blue dragon','two forms'], families:['spirit','royal','dragon'], mechanics:['dual_form','air_ground'] },
-      'Mighty Miner': { visuals:['orange mustache','helmet','drill'], families:['miner','machine'], mechanics:['ramp_damage','lane_swap','bomb'] },
-      'Skeleton King': { visuals:['crown','spiked club'], families:['skeleton','royal'], mechanics:['soul','summon'] },
-      'Archer Queen': { visuals:['purple hair','crown','cape'], families:['royal','archer'], mechanics:['cloak','speed_boost'] },
-      'Golden Knight': { visuals:['gold armor','gold hair','blue eyes'], families:['royal','knight'], mechanics:['dash_chain'] },
-      'Monk': { visuals:['bald','beads','white beard','reflect'], families:['monk'], mechanics:['reflect','combo','pushback'] },
-      'Little Prince': { visuals:['kid','crown','crossbow','guardian'], families:['royal','prince'], mechanics:['ramp_speed','summon_guardian'] },
-      'Goblinstein': { visuals:['scientist goblin','big monster','electric link'], families:['goblin','electric'], mechanics:['stun','dual_unit','ability'] },
-      'Boss Bandit': { visuals:['red hair','cape','covered face'], families:['bandit'], mechanics:['dash','invis','teleport','grenades'] }
-    };
+// Manual “meaning” hints that fix a lot of bad picks (spawners, elements, etc.)
+const FAMILY_HINTS = new Map([
+  ['Goblin Hut', ['goblin','spawner']],
+  ['Goblin Cage', ['goblin']],
+  ['Goblin Drill', ['goblin']],
+  ['Goblin Barrel', ['goblin']],
+  ['Goblin Curse', ['goblin','curse']],
+  ['Tombstone', ['skeleton','spawner']],
+  ['Graveyard', ['skeleton','spawner']],
+  ['Furnace', ['fire','spirit','spawner']],
+  ['Royal Delivery', ['royal','recruit','spawner']],
+  ['Barbarian Barrel', ['barbarian','roll','spawner']],
+  ['Barbarian Hut', ['barbarian','spawner']],
+  ['Inferno Tower', ['inferno','fire']],
+  ['Inferno Dragon', ['inferno','fire','dragon']],
+  ['Electro Dragon', ['electro','dragon']],
+  ['Tesla', ['electro']],
+  ['Zap', ['electro']],
+  ['Lightning', ['electro']],
+  ['Freeze', ['ice']],
+  ['Giant Snowball', ['ice']],
+  ['Ice Spirit', ['ice','spirit']],
+  ['Fire Spirit', ['fire','spirit']],
+  ['Poison', ['poison']],
+  ['Void', ['dark']],
+  ['Rage', ['rage','buff']],
+  ['The Log', ['log','knockback']],
+]);
 
-    function cardType(name){
-      if(SPELLS.has(name)) return 'spell';
-      if(BUILDINGS.has(name)) return 'building';
-      return 'troop';
+// You already had some overrides; keep them (add more over time for best results)
+const OVERRIDE_TAGS = {
+  'Mother Witch': { visuals:['granny','blue eyes','purple','pink'], families:['witch','curse','hog'], mechanics:['curse','transform','spawn'] },
+  'Phoenix': { visuals:['phoenix','fire bird','egg'], families:['phoenix','fire'], mechanics:['revive','egg','death_damage'] },
+  'Goblin Machine': { visuals:['baby goblin','goggles','machine','rocket'], families:['goblin','machine'], mechanics:['rocket','hybrid'] },
+  'Spirit Empress': { visuals:['gold armor','blonde','blue dragon','two forms'], families:['spirit','royal','dragon'], mechanics:['dual_form','air_ground'] },
+  'Mighty Miner': { visuals:['orange mustache','helmet','drill'], families:['miner','machine'], mechanics:['ramp_damage','lane_swap','bomb'] },
+  'Skeleton King': { visuals:['crown','spiked club'], families:['skeleton','royal'], mechanics:['soul','summon'] },
+  'Archer Queen': { visuals:['purple hair','crown','cape'], families:['royal','archer'], mechanics:['cloak','speed_boost'] },
+  'Golden Knight': { visuals:['gold armor','gold hair','blue eyes'], families:['royal','knight'], mechanics:['dash_chain'] },
+  'Monk': { visuals:['bald','beads','white beard','reflect'], families:['monk'], mechanics:['reflect','combo','pushback'] },
+  'Little Prince': { visuals:['kid','crown','crossbow','guardian'], families:['royal','prince'], mechanics:['ramp_speed','summon_guardian'] },
+  'Goblinstein': { visuals:['scientist goblin','big monster','electric link'], families:['goblin','electro'], mechanics:['stun','dual_unit','ability'] },
+  'Boss Bandit': { visuals:['red hair','cape','covered face'], families:['bandit'], mechanics:['dash','invis','teleport','grenades'] }
+};
+
+function cardType(name){
+  if(SPELLS.has(name)) return 'spell';
+  if(BUILDINGS.has(name)) return 'building';
+  return 'troop';
+}
+
+function movement(name){
+  const t = cardType(name);
+  if(t === 'building') return 'static';
+  if(t === 'spell') return 'spell';
+  return AIR_TROOPS.has(name) ? 'air' : 'ground';
+}
+
+function baseRoles(name){
+  const roles = [];
+  if(WINCONS.has(name)) roles.push('wincon');
+  if(TANKS.has(name)) roles.push('tank');
+  if(CONTROL.has(name)) roles.push('control');
+  if(SPAWNERS.has(name)) roles.push('spawner');
+  if(SIEGE.has(name)) roles.push('siege');
+  if(ECONOMY.has(name)) roles.push('economy');
+
+  if(roles.length === 0){
+    const t = cardType(name);
+    if(t === 'spell') roles.push('spell');
+    else if(t === 'building') roles.push('defense');
+    else roles.push('dps');
+  }
+  return roles;
+}
+
+function primaryRole(roles){
+  const order = ['wincon','tank','siege','control','spawner','economy','dps','defense','spell'];
+  for(const r of order) if(roles.includes(r)) return r;
+  return roles[0] || 'dps';
+}
+
+function normName(name){
+  return name
+    .toLowerCase()
+    .replace(/p\.?e\.?k\.?k\.?a/g, 'pekka')
+    .replace(/x-?bow/g, 'xbow')
+    .replace(/[^a-z0-9 ]/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+
+function tokenSet(name){
+  const n = normName(name);
+  const set = new Set(n.split(' ').filter(Boolean));
+  // helpful expansions
+  if(set.has('electro')) set.add('electric');
+  if(set.has('goblin')) set.add('green');
+  if(set.has('skeleton')) set.add('undead');
+  return set;
+}
+
+function bigramSet(str){
+  const s = str.replace(/\s+/g,'');
+  const out = new Set();
+  for(let i=0;i<s.length-1;i++) out.add(s.slice(i,i+2));
+  return out;
+}
+
+function jaccard(A, B){
+  if(A.size === 0 && B.size === 0) return 0;
+  let inter = 0;
+  for(const x of A) if(B.has(x)) inter++;
+  const union = A.size + B.size - inter;
+  return union ? (inter / union) : 0;
+}
+
+function nameSim(aName, bName){
+  const A = bigramSet(normName(aName));
+  const B = bigramSet(normName(bName));
+  return jaccard(A, B);
+}
+
+function addHintsFromMaps(name, families, mechanics, visuals){
+  const hints = FAMILY_HINTS.get(name);
+  if(hints){
+    for(const h of hints){
+      // send to families (most useful)
+      families.add(h);
+      // lightweight mechanics flags
+      if(h === 'roll') mechanics.add('roll');
+      if(h === 'knockback') mechanics.add('knockback');
+      if(h === 'buff') mechanics.add('buff');
+    }
+  }
+
+  const o = OVERRIDE_TAGS[name];
+  if(o?.families) o.families.forEach(x => families.add(x));
+  if(o?.mechanics) o.mechanics.forEach(x => mechanics.add(x));
+  if(o?.visuals) o.visuals.forEach(x => visuals.add(x));
+}
+
+function inferElement(families, mechanics, tokens, visuals){
+  // prefer explicit
+  const preferred = ['electro','ice','fire','poison','dark','spirit','inferno'];
+  for(const e of preferred){
+    if(families.has(e) || mechanics.has(e) || tokens.has(e) || visuals.has(e) || tokens.has(e === 'electro' ? 'electric' : e)) return e;
+  }
+  return null;
+}
+
+function inferSilhouette(type, move, families, roles, tokens){
+  if(type === 'spell') return 'spell';
+  if(type === 'building') return 'building';
+
+  if(families.has('dragon') || tokens.has('dragon')) return 'dragon';
+  if(families.has('skeleton') || tokens.has('skeleton') || families.has('undead')) return 'undead';
+  if(families.has('goblin') || tokens.has('goblin')) return 'goblin';
+  if(roles.includes('tank')) return 'big';
+  if(roles.includes('spawner')) return 'spawner';
+  if(move === 'air') return 'flying';
+  return 'humanoid';
+}
+
+const CARD_DB = new Map();
+const SIM_CACHE = new Map(); // key: real|difficulty => ranked list
+
+function buildCardDB(){
+  CARD_DB.clear();
+  SIM_CACHE.clear();
+
+  for(const name of CLASH_CARDS){
+    const type = cardType(name);
+    const move = movement(name);
+    const roles = baseRoles(name);
+    const tokens = tokenSet(name);
+
+    const families = new Set([...tokens]); // start from name tokens (strong in Clash)
+    const mechanics = new Set();
+    const visuals = new Set();
+
+    // generic mechanics by name tokens
+    if(tokens.has('freeze')) mechanics.add('freeze');
+    if(tokens.has('tornado')) mechanics.add('pull');
+    if(tokens.has('zap') || tokens.has('electro') || tokens.has('lightning') || tokens.has('tesla')) mechanics.add('stun');
+    if(tokens.has('poison')) mechanics.add('dot');
+    if(tokens.has('rage')) mechanics.add('buff');
+    if(tokens.has('clone') || tokens.has('mirror')) mechanics.add('copy');
+    if(tokens.has('log') || tokens.has('snowball')) mechanics.add('knockback');
+    if(tokens.has('barrel')) mechanics.add('roll');
+    if(tokens.has('drill') || tokens.has('miner')) mechanics.add('burrow');
+    if(tokens.has('bandit') || tokens.has('prince') || tokens.has('ram')) mechanics.add('dash');
+
+    // role-based mechanics hints
+    if(SPAWNERS.has(name)) mechanics.add('spawn');
+    if(name === 'Inferno Tower' || name === 'Inferno Dragon') mechanics.add('ramp');
+    if(name === 'Phoenix') mechanics.add('revive');
+
+    // visuals (lightweight but useful)
+    if(tokens.has('ice') || tokens.has('snow')) visuals.add('blue');
+    if(tokens.has('fire') || tokens.has('inferno') || tokens.has('phoenix')) visuals.add('fire');
+    if(tokens.has('electro') || tokens.has('zap') || tokens.has('lightning') || tokens.has('tesla')) visuals.add('electric');
+    if(tokens.has('goblin')) visuals.add('green');
+    if(tokens.has('skeleton') || tokens.has('grave')) visuals.add('undead');
+    if(tokens.has('royal') || tokens.has('king') || tokens.has('queen') || tokens.has('prince') || tokens.has('knight')) visuals.add('crown');
+
+    // apply your strong manual hints
+    addHintsFromMaps(name, families, mechanics, visuals);
+
+    const element = inferElement(families, mechanics, tokens, visuals);
+    const silhouette = inferSilhouette(type, move, families, roles, tokens);
+
+    CARD_DB.set(name, {
+      name, type, move,
+      roles,
+      primary: primaryRole(roles),
+      tokens: [...tokens],
+      families: [...families],
+      mechanics: [...mechanics],
+      visuals: [...visuals],
+      element,
+      silhouette
+    });
+  }
+}
+
+function overlapCount(aArr, bArr){
+  const B = new Set(bArr);
+  let c = 0;
+  for(const x of aArr) if(B.has(x)) c++;
+  return c;
+}
+
+function coreMatchCount(A, B, ns){
+  let core = 0;
+  if(A.type === B.type) core++;
+  if(A.element && A.element === B.element) core++;
+  if(overlapCount(A.families, B.families) >= 2) core++;     // stronger: >=2
+  if(overlapCount(A.mechanics, B.mechanics) >= 1) core++;
+  if(A.silhouette === B.silhouette) core++;
+  if(ns >= 0.28) core++;                                     // name similarity is powerful
+  if(A.primary === B.primary) core++;
+  return core;
+}
+
+function similarityScore(real, cand){
+  const A = CARD_DB.get(real);
+  const B = CARD_DB.get(cand);
+  if(!A || !B || real === cand) return -Infinity;
+
+  const ns = nameSim(real, cand);
+  const famOv = overlapCount(A.families, B.families);
+  const mecOv = overlapCount(A.mechanics, B.mechanics);
+  const roleOv = overlapCount(A.roles, B.roles);
+  const visOv = overlapCount(A.visuals, B.visuals);
+
+  const typeMatch = (A.type === B.type);
+  const elementMatch = (A.element && A.element === B.element);
+  const silMatch = (A.silhouette === B.silhouette);
+  const roleMatch = (A.primary === B.primary);
+
+  // Weighted base
+  let s = 0;
+  s += typeMatch ? 12 : 0;
+  s += (A.move === B.move) ? 4 : 0;
+  s += elementMatch ? 10 : 0;
+  s += silMatch ? 8 : 0;
+  s += roleMatch ? 6 : 0;
+
+  s += Math.min(14, famOv * 3);
+  s += Math.min(10, mecOv * 4);
+  s += Math.min(8,  roleOv * 3);
+  s += Math.min(6,  visOv * 2);
+
+  s += ns * 14; // name similarity now strongly influences picks
+
+  // punish “no meaningful overlap”
+  if(famOv === 0 && mecOv === 0 && roleOv === 0 && ns < 0.20) s -= 10;
+
+  // small encouragement for cross-type “element impersonation”
+  if(!typeMatch && elementMatch) s += 4;
+  if(!typeMatch && famOv >= 3) s += 3;
+
+  return { score: s, ns };
+}
+
+function hardDeceptionBonus(A, B, ns, famOv){
+  // Prefer "close but not identical": exactly 1 mismatch among key dimensions
+  const dims = [
+    A.type === B.type,
+    (A.element && A.element === B.element),
+    A.primary === B.primary,
+    A.silhouette === B.silhouette
+  ];
+  const matches = dims.filter(Boolean).length;
+
+  let bonus = 0;
+  if(matches === 4) bonus -= 3;              // too perfect; makes it boring
+  else if(matches === 3) bonus += 6;         // ideal hard: one mismatch
+  else if(matches === 2) bonus += 2;
+  else bonus -= 6;
+
+  if(ns >= 0.40) bonus += 2;                 // "Dragon ↔ Dragon" style confusions
+  if(famOv >= 4) bonus += 2;
+
+  // cross-type deception that still feels legit
+  if(A.type !== B.type && (A.element && A.element === B.element)) bonus += 2;
+
+  return bonus;
+}
+
+function rankedCandidates(real, difficulty){
+  const key = `${real}__${difficulty}`;
+  if(SIM_CACHE.has(key)) return SIM_CACHE.get(key);
+
+  const out = [];
+  for(const c of CLASH_CARDS){
+    if(c === real) continue;
+
+    const base = similarityScore(real, c);
+    if(base === -Infinity) continue;
+
+    const A = CARD_DB.get(real);
+    const B = CARD_DB.get(c);
+    const famOv = overlapCount(A.families, B.families);
+    const core = coreMatchCount(A, B, base.ns);
+
+    let s = base.score;
+
+    // Difficulty-specific gating + scoring
+    if(difficulty === 'easy'){
+      // must be strongly confusable
+      if(core < 4) continue;
+      if(s < 22) continue;
+    } else if(difficulty === 'medium'){
+      if(core < 3) continue;
+      if(s < 16) continue;
+    } else { // hard
+      if(core < 3) continue;
+      s += hardDeceptionBonus(A, B, base.ns, famOv);
     }
 
-    function movement(name){
-      const t = cardType(name);
-      if(t === 'building') return 'static';
-      if(t === 'spell') return 'spell';
-      return AIR_TROOPS.has(name) ? 'air' : 'ground';
+    out.push({ c, s });
+  }
+
+  out.sort((a,b)=>b.s-a.s);
+
+  // controlled pool size
+  let pool;
+  if(difficulty === 'easy') pool = out.slice(0, 18);
+  else if(difficulty === 'medium') pool = out.slice(0, 30);
+  else pool = out.slice(0, 38);
+
+  // Fallbacks if filters get too strict for some cards
+  if(pool.length < 10){
+    // loosen once
+    const fallback = [];
+    for(const c of CLASH_CARDS){
+      if(c === real) continue;
+      const base = similarityScore(real, c);
+      const A = CARD_DB.get(real), B = CARD_DB.get(c);
+      const core = coreMatchCount(A, B, base.ns);
+      if(core >= 2) fallback.push({ c, s: base.score });
     }
+    fallback.sort((a,b)=>b.s-a.s);
+    pool = fallback.slice(0, difficulty === 'easy' ? 16 : (difficulty === 'medium' ? 26 : 34));
+  }
 
-    function baseRoles(name){
-      const roles = new Set();
-      if(WINCONS.has(name)) roles.add('wincon');
-      if(TANKS.has(name)) roles.add('tank');
-      if(CONTROL.has(name)) roles.add('control');
-      if(SPAWNERS.has(name)) roles.add('spawner');
-      if(SIEGE.has(name)) roles.add('siege');
-      if(ECONOMY.has(name)) roles.add('economy');
-
-      // fallback
-      if(roles.size === 0){
-        const t = cardType(name);
-        if(t === 'spell') roles.add('spell');
-        else if(t === 'building') roles.add('defense');
-        else roles.add('dps');
-      }
-      return [...roles];
-    }
-
-    function inferFamilies(name){
-      const low = name.toLowerCase();
-      const fam = new Set();
-
-      // keyword-based
-      for(const k of FAMILY_KEYWORDS){
-        if(low.includes(k)) fam.add(k);
-      }
-
-      // special canonical families
-      if(low.includes('e-wiz') || low.includes('electro')) fam.add('electro');
-      if(low.includes('inferno')) fam.add('inferno');
-      if(low.includes('grave')) fam.add('skeleton');
-      if(low.includes('hog')) fam.add('hog');
-      if(low.includes('barrel')) fam.add('barbarian'); // barbarian barrel
-      if(low.includes('queen') || low.includes('king') || low.includes('prince') || low.includes('knight') || low.includes('royal')) fam.add('royal');
-
-      // overrides
-      const o = OVERRIDE_TAGS[name];
-      if(o?.families) o.families.forEach(x => fam.add(x));
-
-      return [...fam];
-    }
-
-    function inferMechanics(name){
-      const low = name.toLowerCase();
-      const mech = new Set();
-
-      // generic by name
-      if(low.includes('freeze')) mech.add('freeze');
-      if(low.includes('tornado')) mech.add('pull');
-      if(low.includes('zap') || low.includes('electro') || low.includes('lightning') || low.includes('zappies')) mech.add('stun');
-      if(low.includes('poison')) mech.add('dot');
-      if(low.includes('rage')) mech.add('buff');
-      if(low.includes('clone') || low.includes('mirror')) mech.add('copy');
-      if(low.includes('log') || low.includes('snowball') || low.includes('bowler')) mech.add('knockback');
-      if(low.includes('barrel')) mech.add('roll');
-      if(low.includes('drill') || low.includes('miner')) mech.add('burrow');
-      if(low.includes('charge') || low.includes('ram') || low.includes('prince') || low.includes('bandit') || low.includes('knight')) mech.add('charge_dash');
-
-      // category-based
-      if(SPAWNERS.has(name)) mech.add('spawn');
-      if(name === 'Inferno Tower' || name === 'Inferno Dragon') mech.add('ramp');
-      if(name === 'Electro Giant') mech.add('reflect');
-      if(name === 'Phoenix') mech.add('revive');
-
-      // overrides
-      const o = OVERRIDE_TAGS[name];
-      if(o?.mechanics) o.mechanics.forEach(x => mech.add(x));
-
-      return [...mech];
-    }
-
-    function inferVisuals(name){
-      const low = name.toLowerCase();
-      const vis = new Set();
-
-      // very light, but useful
-      if(low.includes('ice') || low.includes('snow')) vis.add('blue');
-      if(low.includes('fire') || low.includes('inferno') || low.includes('phoenix')) vis.add('fire');
-      if(low.includes('electro') || low.includes('zap') || low.includes('lightning') || low.includes('tesla')) vis.add('electric');
-      if(low.includes('goblin')) vis.add('green');
-      if(low.includes('skeleton') || low.includes('grave')) vis.add('undead');
-      if(low.includes('royal') || low.includes('king') || low.includes('queen') || low.includes('prince') || low.includes('knight')) vis.add('crown');
-
-      // overrides (your appearance cues)
-      const o = OVERRIDE_TAGS[name];
-      if(o?.visuals) o.visuals.forEach(x => vis.add(x));
-
-      return [...vis];
-    }
-
-    const CARD_DB = new Map();
-    const SIM_CACHE = new Map(); // key: real|difficulty => ranked list
-
-    function buildCardDB(){
-      CARD_DB.clear();
-      for(const name of CLASH_CARDS){
-        const t = cardType(name);
-        const entry = {
-          name,
-          type: t,
-          move: movement(name),
-          roles: baseRoles(name),
-          families: inferFamilies(name),
-          mechanics: inferMechanics(name),
-          visuals: inferVisuals(name)
-        };
-        CARD_DB.set(name, entry);
-      }
-    }
-
-    function overlapCount(a, b){
-      let c = 0;
-      const setB = new Set(b);
-      for(const x of a) if(setB.has(x)) c++;
-      return c;
-    }
-
-    function similarityScore(real, cand){
-      const A = CARD_DB.get(real);
-      const B = CARD_DB.get(cand);
-      if(!A || !B) return -Infinity;
-      if(real === cand) return -Infinity;
-
-      let s = 0;
-
-      // Type + movement (strong)
-      if(A.type === B.type) s += 6;
-      if(A.move === B.move) s += 3;
-
-      // Roles / families / mechanics / visuals
-      const roleOv = overlapCount(A.roles, B.roles);
-      const famOv  = overlapCount(A.families, B.families);
-      const mecOv  = overlapCount(A.mechanics, B.mechanics);
-      const visOv  = overlapCount(A.visuals, B.visuals);
-
-      s += Math.min(10, roleOv * 5);
-      s += Math.min(10, famOv  * 3);
-      s += Math.min(12, mecOv  * 4);
-      s += Math.min(6,  visOv  * 2);
-
-      // Encourage "same theme even across types" (spells/buildings impersonating troops)
-      if(A.type !== B.type && famOv >= 2) s += 3;
-      if(A.type !== B.type && mecOv >= 2) s += 2;
-
-      // Small penalty if wildly different and nothing overlaps
-      if(roleOv === 0 && famOv === 0 && mecOv === 0) s -= 6;
-
-      return s;
-    }
-
-    function rankedCandidates(real, difficulty){
-      const key = `${real}__${difficulty}`;
-      if(SIM_CACHE.has(key)) return SIM_CACHE.get(key);
-
-      const scored = [];
-      for(const c of CLASH_CARDS){
-        if(c === real) continue;
-        scored.push({ c, s: similarityScore(real, c) });
-      }
-      scored.sort((a,b)=>b.s-a.s);
-
-      // Difficulty: filter/shape pool (not just thresholds)
-      let pool = scored;
-
-      if(difficulty === 'easy'){
-        // very strict: take top 12, but only if somewhat aligned
-        pool = scored.filter(x => x.s >= 10).slice(0, 12);
-        if(pool.length < 6) pool = scored.slice(0, 10);
-      } else if(difficulty === 'medium'){
-        pool = scored.filter(x => x.s >= 7).slice(0, 28);
-        if(pool.length < 10) pool = scored.slice(0, 20);
-      } else { // hard
-        pool = scored.filter(x => x.s >= 4).slice(0, 45);
-        if(pool.length < 14) pool = scored.slice(0, 30);
-      }
-
-      SIM_CACHE.set(key, pool);
-      return pool;
-    }
-
-    function weightedPickTop(pool){
-      // pool is sorted-ish; weight favors earlier entries strongly
-      if(!pool.length) return null;
-      const n = pool.length;
-      // weights: 1/(i+1)^1.2
-      let sum = 0;
-      const weights = [];
-      for(let i=0;i<n;i++){
-        const w = 1 / Math.pow(i+1, 1.2);
-        weights.push(w);
-        sum += w;
-      }
-      let r = Math.random() * sum;
-      for(let i=0;i<n;i++){
-        r -= weights[i];
-        if(r <= 0) return pool[i].c;
-      }
-      return pool[0].c;
-    }
-
-    function pickFakeCard(real, difficulty, avoidSet){
-      const pool = rankedCandidates(real, difficulty).filter(x => x.c !== real);
-      if(!pool.length) return CLASH_CARDS[Math.floor(Math.random()*CLASH_CARDS.length)];
-
-      // Avoid repeating last round fakes if possible
-      const filtered = pool.filter(x => !avoidSet.has(x.c));
-      const finalPool = filtered.length >= 6 ? filtered : pool;
-
-      return weightedPickTop(finalPool);
-    }
+  SIM_CACHE.set(key, pool);
+  return pool;
+}
 
     // =========================
     // 7) ROUND GENERATION
