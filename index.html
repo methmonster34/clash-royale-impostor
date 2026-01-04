@@ -4,6 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="google-adsense-account" content="ca-pub-2021683559156386">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2021683559156386"
+     crossorigin="anonymous"></script>
   <title>Clash Royale Imposter</title>
   <link rel="preconnect" href="https://raw.githubusercontent.com" />
   <style>
@@ -599,88 +601,97 @@
       return core;
     }
 
-    // =========================
-    // NEW similarityScore (anchor enforcement)
-    // =========================
-    function similarityScore(real, cand){
-      const A = CARD_DB.get(real);
-      const B = CARD_DB.get(cand);
-      if(!A || !B || real === cand) return -Infinity;
+   // updated similarity algorithm for dark mode
+// priority order: (1) element + physical attributes, (2) name similarity, (3) mechanics/families/roles
 
-      const ns = nameSim(real, cand);
-      const famOv = overlapCount(A.families, B.families);
-      const mecOv = overlapCount(A.mechanics, B.mechanics);
-      const roleOv = overlapCount(A.roles, B.roles);
-      const visOv = overlapCount(A.visuals, B.visuals);
 
-      const elementMatch = (A.element && A.element === B.element);
-      const typeMatch = (A.type === B.type);
-      const moveMatch = (A.move === B.move);
+const GENERIC_PRIMARY = new Set(['dps','defense','spell']);
+const GENERIC_SIL = new Set(['humanoid','building','spell']);
 
-      const roleMatch = (!GENERIC_PRIMARY.has(A.primary) && A.primary === B.primary);
-      const silMatch  = (!GENERIC_SIL.has(A.silhouette) && A.silhouette === B.silhouette);
 
-      // ✅ must share at least 1 strong "anchor"
-      const hasAnchor = elementMatch || mecOv >= 1 || famOv >= 1 || ns >= 0.32 || silMatch;
-      if(!hasAnchor) return -Infinity;
+function coreMatchCount(A, B, ns) {
+const elementMatch = (A.element && A.element === B.element);
+const typeMatch = (A.type === B.type);
+const moveMatch = (A.move === B.move);
+const silMatch = (!GENERIC_SIL.has(A.silhouette) && A.silhouette === B.silhouette);
 
-      let s = 0;
-      s += typeMatch ? 10 : -50;     // basically force same type
-      s += moveMatch ? 3 : 0;
-      s += elementMatch ? 10 : 0;
-      s += silMatch ? 8 : 0;
-      s += roleMatch ? 6 : 0;
 
-      s += Math.min(16, famOv * 4);
-      s += Math.min(12, mecOv * 5);
-      s += Math.min(8,  roleOv * 2);
-      s += Math.min(6,  visOv * 2);
+const visOv = overlapCount(A.visuals, B.visuals);
+const mecOv = overlapCount(A.mechanics, B.mechanics);
 
-      s += ns * 14;
 
-      return { score: s, ns };
-    }
+let core = 0;
+if (elementMatch) core += 2; // element is strongest
+if (typeMatch) core += 1; // troop/building/spell must align
+if (moveMatch) core += 1; // air/ground/static/spell
+if (silMatch) core += 1; // dragon/goblin/undead/etc.
+if (visOv >= 2) core += 1; // physical look overlap
 
-    function hardDeceptionBonus(A, B, ns, famOv){
-      const dims = [
-        A.type === B.type,
-        (A.element && A.element === B.element),
-        A.primary === B.primary,
-        A.silhouette === B.silhouette
-      ];
-      const matches = dims.filter(Boolean).length;
 
-      let bonus = 0;
-      if(matches === 4) bonus -= 3;
-      else if(matches === 3) bonus += 6;
-      else if(matches === 2) bonus += 2;
-      else bonus -= 6;
+// name comes next
+if (ns >= 0.34) core += 1;
 
-      if(ns >= 0.40) bonus += 2;
-      if(famOv >= 4) bonus += 2;
-      if(A.type !== B.type && (A.element && A.element === B.element)) bonus += 2;
 
-      return bonus;
-    }
+// still useful, but lower priority
+if (mecOv >= 1) core += 1;
 
-    function rankedCandidates(real, difficulty){
-      const key = `${real}__${difficulty}`;
-      if(SIM_CACHE.has(key)) return SIM_CACHE.get(key);
 
-      const out = [];
-      for(const c of CLASH_CARDS){
-        if(c === real) continue;
+return core;
+}
 
-        const base = similarityScore(real, c);
-        if(base === -Infinity) continue;
 
-        const A = CARD_DB.get(real);
-        const B = CARD_DB.get(c);
-        const famOv = overlapCount(A.families, B.families);
-        const core = coreMatchCount(A, B, base.ns);
+function similarityScore(real, cand){
+const A = CARD_DB.get(real);
+const B = CARD_DB.get(cand);
+if(!A || !B || real === cand) return -Infinity;
 
-        let s = base.score;
 
+const ns = nameSim(real, cand);
+const famOv = overlapCount(A.families, B.families);
+const mecOv = overlapCount(A.mechanics, B.mechanics);
+const roleOv = overlapCount(A.roles, B.roles);
+const visOv = overlapCount(A.visuals, B.visuals);
+
+
+const elementMatch = (A.element && A.element === B.element);
+const typeMatch = (A.type === B.type);
+const moveMatch = (A.move === B.move);
+if(!typeMatch) return -Infinity; // physical type is mandatory
+
+
+const roleMatch = (!GENERIC_PRIMARY.has(A.primary) && A.primary === B.primary);
+const silMatch = (!GENERIC_SIL.has(A.silhouette) && A.silhouette === B.silhouette);
+
+
+// must share element OR strong physical similarity OR strong name OR at least 1 mechanic overlap
+const physStrong = (moveMatch ? 1 : 0) + (silMatch ? 1 : 0) + (visOv >= 2 ? 1 : 0);
+const hasAnchor = elementMatch || physStrong >= 2 || mecOv >= 1 || ns >= 0.42;
+if(!hasAnchor) return -Infinity;
+
+
+let s = 0;
+
+
+// (1) element + physical attributes (MOST IMPORTANT)
+s += elementMatch ? 34 : 0;
+s += moveMatch ? 12 : 0;
+s += silMatch ? 18 : 0;
+s += Math.min(24, visOv * 6);
+
+
+// (2) name similarity (SECOND)
+s += ns * 14;
+
+
+// (3) mechanics / families / roles (SUPPORTING)
+s += Math.min(10, mecOv * 5);
+s += Math.min(8, famOv * 2);
+s += Math.min(4, roleOv * 1);
+s += roleMatch ? 3 : 0;
+
+
+return { score: s, ns };
+}
         // ✅ thresholds adjusted for the new core definition
         if(difficulty === 'easy'){
           if(core < 3) continue;
