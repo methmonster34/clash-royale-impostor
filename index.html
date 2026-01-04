@@ -1,4 +1,330 @@
-// =========================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="google-adsense-account" content="ca-pub-2021683559156386">
+  <title>Clash Royale Imposter</title>
+  <link rel="preconnect" href="https://raw.githubusercontent.com" />
+  <style>
+    :root { --bg:#0f172a; --panel:#0b1220; --text:#e5e7eb; --muted:#94a3b8; --accent:#22c55e; --danger:#ef4444; --primary:#0ea5e9; }
+    *{box-sizing:border-box;font-family:system-ui,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    body{margin:0;min-height:100vh;background:linear-gradient(180deg,#0a0f1c,#0f172a);color:var(--text);display:flex;align-items:center}
+    .wrap{width:100%;max-width:760px;margin:0 auto;padding:20px}
+    .card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    h1{margin:0 0 10px;font-size:28px}
+    p.sub{margin:0 0 16px;color:var(--muted)}
+    .modebar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+    .modebtn{padding:10px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(56,189,248,.1);color:#c7f9ff;font-weight:700;cursor:pointer}
+    .modebtn.primary{background:#38bdf8;color:#031d2c}
+    .modebtn.disabled{opacity:.5;cursor:not-allowed}
+    label{display:block;margin:8px 0 4px;color:var(--muted);font-size:14px}
+    input, select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0e1526;color:var(--text)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .btn{width:100%;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:#152235;color:var(--text);font-weight:800;font-size:16px;cursor:pointer}
+    .btn.primary{background:var(--primary);border-color:rgba(14,165,233,.5)}
+    .btn.success{background:var(--accent);color:#052e16;border:none}
+    .btn.danger{background:var(--danger);border:none}
+    .center{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px}
+    .pill{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);font-size:12px;color:var(--muted)}
+    .divider{height:1px;background:rgba(255,255,255,.08);margin:12px 0}
+    .hidden{display:none}
+    .wordStage{display:grid;grid-template-columns:1fr;gap:16px;width:100%}
+    .wordCard{border-radius:24px;border:2px dashed rgba(255,255,255,.15);padding:16px 16px 20px;min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:12px}
+    .wordText{font-size:36px;font-weight:800;letter-spacing:.4px;text-align:center;word-break:break-word;max-width:100%}
+    .imageSlot{width:100%;max-width:320px;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;border-radius:18px;border:1px dashed rgba(255,255,255,.14);background:rgba(255,255,255,.02)}
+    #cardImg{max-width:100%;max-height:100%;object-fit:contain;display:none}
+    .hint{color:var(--muted);font-size:14px;margin-top:-6px}
+
+    /* Player/Impostor stepper */
+    .stepper{display:flex;align-items:center;gap:10px}
+    .stepBtn{width:44px;height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0e1526;color:var(--text);font-weight:900;font-size:18px;cursor:pointer}
+    .stepBtn:disabled{cursor:not-allowed;opacity:.6}
+    .stepValue{flex:1;text-align:center;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0e1526;color:var(--text);font-weight:800}
+    .miniRow{display:flex;gap:10px;align-items:center;margin-top:8px}
+    .tinyBtn{padding:8px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#0e1526;color:var(--text);font-weight:800;cursor:pointer}
+    .tinyBtn.on{background:rgba(34,197,94,.18);border-color:rgba(34,197,94,.5)}
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="modebar">
+      <button class="modebtn primary" id="modeClash" type="button">Clash Royale Imposter</button>
+      <button class="modebtn" id="modeDark" type="button">Clash Royale in the Dark</button>
+      <button class="modebtn" id="modeDarkWild" type="button">In the Dark (Wild)</button>
+      <button class="modebtn" id="modeRandom" type="button">Random Mode</button>
+    </div>
+
+    <div class="card" id="screen-setup">
+      <h1>Clash Royale Imposter</h1>
+      <p class="sub">Pick a mode, set players/impostors, then start. In Dark modes, impostors get a similar card.</p>
+
+      <div class="row">
+        <div>
+          <label>Players</label>
+          <div class="stepper">
+            <button class="stepBtn" id="playersMinus" type="button">−</button>
+            <div class="stepValue" id="playersValue">4</div>
+            <button class="stepBtn" id="playersPlus" type="button">+</button>
+          </div>
+        </div>
+
+        <div>
+          <label>Impostors (0 ≤ impostors ≤ players)</label>
+          <div class="stepper">
+            <button class="stepBtn" id="impostorsMinus" type="button">−</button>
+            <div class="stepValue" id="impostorsValue">1</div>
+            <button class="stepBtn" id="impostorsPlus" type="button">+</button>
+          </div>
+
+          <div class="miniRow">
+            <button class="tinyBtn" id="toggleRandomImps" type="button">Random impostors: OFF</button>
+          </div>
+          <div class="hint" id="impHint" style="margin-top:6px">
+            If Random is ON, impostor count is hidden and changes every round.
+          </div>
+        </div>
+      </div>
+
+      <div class="row" id="darkControls" style="margin-top:12px; display:none">
+        <div>
+          <label for="difficulty">Difficulty (Dark modes)</label>
+          <select id="difficulty">
+            <option value="easy">Easy (very similar)</option>
+            <option value="medium" selected>Medium (mixed)</option>
+            <option value="hard">Hard (deceptive)</option>
+          </select>
+        </div>
+        <div></div>
+      </div>
+
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" id="begin" type="button">Begin Round</button>
+        <button class="btn danger" id="resetAllSetup" type="button">Reset</button>
+      </div>
+    </div>
+
+    <div class="card hidden" id="screen-pass">
+      <div class="center" style="width:100%">
+        <div class="pill" id="turnInfo">Player 1 / ?</div>
+        <div class="wordStage">
+          <div class="wordCard">
+            <div class="imageSlot">
+              <img id="cardImg" alt="Card" />
+            </div>
+            <div class="wordText" id="wordText">Tap to reveal</div>
+          </div>
+          <div class="hint" id="hint">Hand the phone to this player before tapping.</div>
+        </div>
+        <button class="btn success" id="toggleBtn" type="button" style="width:100%">Reveal</button>
+      </div>
+    </div>
+
+    <div class="card hidden" id="screen-summary">
+      <div class="center">
+        <div class="pill" id="roundInfoPill">Round finished</div>
+        <h1>How to Play</h1>
+        <p class="sub" style="max-width:640px" id="summaryText">
+          Discuss clues without saying the card name. Figure out who the impostors are.
+        </p>
+
+        <button class="btn" id="showImpostors" type="button">Reveal Impostors</button>
+        <div id="impostorList" class="sub hidden"></div>
+
+        <div class="divider"></div>
+        <button class="btn primary" id="playAgain" type="button">Play Again</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================
+    // 0) CONFIG
+    // =========================
+    const IMPOSTOR_IMAGE_URL = "";
+
+    const RAW_BASE = "https://raw.githubusercontent.com/methmonster34/clash-royale-impostor/main";
+    const IMAGE_FOLDERS = ["Clash Royale Imposter Images", "Clash Royale Imposter Images 2"];
+
+    // =========================
+    // 1) DATA
+    // =========================
+    const CLASH_CARDS = [
+      'Arrows','Zap','Giant Snowball','Rage','Clone','Mirror','Heal Spirit','Fireball','Poison','Rocket','Lightning','Earthquake','Tornado','The Log','Barbarian Barrel','Royal Delivery','Freeze',
+      'Skeletons','Ice Spirit','Fire Spirit','Bats','Spear Goblins','Goblins','Goblin Gang','Guards','Skeleton Army','Wall Breakers',
+      'Archers','Knight','Bomber','Ice Golem','Minions','Minion Horde','Dart Goblin','Barbarians','Royal Recruits','Royal Hogs','Zappies','Rascals',
+      'Musketeer','Hunter','Wizard','Ice Wizard','Electro Wizard','Magic Archer','Mother Witch',
+      'Valkyrie','Mini P.E.K.K.A','Dark Prince','Prince','Bandit','Battle Ram','Cannon Cart','Ram Rider','Lumberjack','Battle Healer','Fisherman','Monk',
+      'P.E.K.K.A','Giant','Giant Skeleton','Goblin Giant','Royal Giant','Hog Rider','Mega Knight','Sparky','Balloon',
+      'X-Bow','Mortar','Cannon','Bomb Tower','Tesla','Inferno Tower','Furnace','Tombstone','Goblin Cage','Goblin Hut','Barbarian Hut','Elixir Collector','Goblin Drill',
+      'Baby Dragon','Inferno Dragon','Electro Dragon','Skeleton Dragons','Phoenix',
+      'Mega Minion','Flying Machine',
+      'Golem','Lava Hound','Graveyard','Miner','Goblin Barrel','Elixir Golem','Electro Giant',
+      'Three Musketeers',
+      'Spirit Empress','Goblin Curse','Goblin Machine','Void','Vines','Goblin Demolisher','Suspicious Bush','Rune Giant','Little Prince','Goblinstein','Boss Bandit',
+      'Archer Queen','Skeleton King','Golden Knight','Mighty Miner'
+    ];
+
+    // =========================
+    // 2) HELPERS (DOM + Images)
+    // =========================
+    const el = id => document.getElementById(id);
+    const screens = { setup: el("screen-setup"), pass: el("screen-pass"), summary: el("screen-summary") };
+    const show = name => { Object.values(screens).forEach(s => s.classList.add("hidden")); screens[name].classList.remove("hidden"); };
+
+    function shuffle(arr){
+      for(let i=arr.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function filenameForCard(name){ return name.toLowerCase().replace(/[^a-z0-9]/g,'') + '.png'; }
+
+    function setCardImageByName(name){
+      const img = el('cardImg');
+      img.style.display = 'none';
+      img.loading = 'eager';
+      img.decoding = 'async';
+      img.referrerPolicy = 'no-referrer';
+
+      if(name === '__IMPOSTOR__' && IMPOSTOR_IMAGE_URL){
+        img.onload = () => img.style.display = 'block';
+        img.onerror = () => { img.removeAttribute('src'); img.style.display='none'; };
+        img.src = IMPOSTOR_IMAGE_URL;
+        return;
+      }
+
+      const file = filenameForCard(name);
+      const urls = IMAGE_FOLDERS.map(folder => `${RAW_BASE}/${encodeURIComponent(folder)}/${file}`);
+      let i = 0;
+
+      function tryNext(){
+        if(i >= urls.length){
+          img.removeAttribute('src');
+          img.style.display='none';
+          return;
+        }
+        img.onerror = () => { i++; tryNext(); };
+        img.onload  = () => { img.style.display = 'block'; };
+        img.src = urls[i];
+      }
+      tryNext();
+    }
+
+    function prefetchCardImage(name){
+      if(!name || name==='__IMPOSTOR__') return;
+      const file = filenameForCard(name);
+      IMAGE_FOLDERS.forEach(folder => {
+        const i = new Image();
+        i.decoding = 'async';
+        i.referrerPolicy = 'no-referrer';
+        i.src = `${RAW_BASE}/${encodeURIComponent(folder)}/${file}`;
+      });
+    }
+
+    // =========================
+    // 3) GAME STATE
+    // =========================
+    const state = {
+      players: 4,
+      impostors: 1,
+      randomImpostors: false,
+
+      selectedMode: 'clash',   // 'clash'|'dark'|'darkWild'|'random'
+      roundMode: 'clash',
+
+      difficulty: 'medium',    // 'easy'|'medium'|'hard'
+
+      realCard: '',
+      assignments: [],
+      fakeCards: [],
+
+      turn: 0,
+      revealed: false,
+      history: [],
+
+      lastReal: null,
+      lastFakes: new Set()
+    };
+
+    // =========================
+    // 4) SETUP UI LOGIC
+    // =========================
+    function setMode(newMode){
+      state.selectedMode = newMode;
+
+      el('modeClash').classList.toggle('primary', newMode==='clash');
+      el('modeDark').classList.toggle('primary', newMode==='dark');
+      el('modeDarkWild').classList.toggle('primary', newMode==='darkWild');
+      el('modeRandom').classList.toggle('primary', newMode==='random');
+
+      const showDarkControls = (newMode === 'dark' || newMode === 'darkWild' || newMode === 'random');
+      el('darkControls').style.display = showDarkControls ? 'grid' : 'none';
+    }
+
+    function setImpostors(n){
+      state.impostors = Math.max(0, Math.min(state.players, n));
+      el('impostorsValue').textContent = state.randomImpostors ? '?' : String(state.impostors);
+    }
+
+    function setPlayers(n){
+      state.players = Math.max(3, Math.min(20, n));
+      el('playersValue').textContent = String(state.players);
+      setImpostors(state.impostors); // clamp + refresh
+    }
+
+    function readSetup(){
+      state.difficulty = el('difficulty').value || 'medium';
+    }
+
+    function setRandomImpostors(on){
+      state.randomImpostors = !!on;
+      el('toggleRandomImps').classList.toggle('on', state.randomImpostors);
+      el('toggleRandomImps').textContent = state.randomImpostors ? 'Random impostors: ON' : 'Random impostors: OFF';
+
+      el('impostorsMinus').disabled = state.randomImpostors;
+      el('impostorsPlus').disabled  = state.randomImpostors;
+
+      el('impostorsValue').textContent = state.randomImpostors ? '?' : String(state.impostors);
+    }
+
+    function resetSetup(){
+      setPlayers(4);
+      setImpostors(1);
+      setRandomImpostors(false);
+      el('difficulty').value = 'medium';
+      setMode('clash');
+    }
+
+    // =========================
+    // 5) ROUND MODE CHOICE
+    // =========================
+    function chooseRoundMode(){
+      if(state.selectedMode !== 'random') return state.selectedMode;
+      const modes = ['clash','dark','darkWild'];
+      return modes[Math.floor(Math.random()*modes.length)];
+    }
+
+    function chooseImpostorCount(players){
+      if(!state.randomImpostors) return Math.max(0, Math.min(players, state.impostors));
+
+      if(players <= 0) return 0;
+      if(players === 1) return Math.random() < 0.5 ? 0 : 1;
+
+      const r = Math.random();
+      if(r < 0.10) return 0;
+      if(r > 0.90) return players;
+
+      return 1 + Math.floor(Math.random() * (players - 1));
+    }
+
+    // =========================
+    // 6) CARD META + SIMILARITY ENGINE (ANCHOR ENFORCED)
+    // =========================
+    // =========================
 // 6) CARD META + SIMILARITY ENGINE (V3)
 //    Priority: elemental + physical attributes first, then name similarity.
 //    Also blocks a few known bad pairings you reported.
@@ -452,3 +778,232 @@ function pickFakeCard(real, difficulty, avoidSet = new Set()){
   const slice = use.slice(0, Math.min(topN, use.length));
   return weightedPick(slice);
 }
+
+    // =========================
+    // 7) ROUND GENERATION
+    // =========================
+    function pickRealCard(){
+      let pick = null;
+      for(let tries=0; tries<6; tries++){
+        const c = CLASH_CARDS[Math.floor(Math.random()*CLASH_CARDS.length)];
+        if(c !== state.lastReal){
+          pick = c;
+          break;
+        }
+        pick = c;
+      }
+      return pick;
+    }
+
+    function assignRoles(impostorCount){
+      const roles = Array(state.players).fill('REAL');
+      const idx = shuffle([...Array(state.players)].map((_,i)=>i));
+      for(let i=0;i<impostorCount;i++){
+        roles[idx[i]] = 'IMPOSTOR';
+      }
+      state.assignments = roles;
+    }
+
+    function assignFakeCardsForDarkModes(){
+      state.fakeCards = Array(state.players).fill(null);
+      const avoid = new Set(state.lastFakes);
+
+      if(state.roundMode === 'dark'){
+        const fake = pickFakeCard(state.realCard, state.difficulty, avoid);
+        for(let i=0;i<state.players;i++){
+          if(state.assignments[i] === 'IMPOSTOR') state.fakeCards[i] = fake;
+        }
+        prefetchCardImage(fake);
+        return;
+      }
+
+      if(state.roundMode === 'darkWild'){
+        const used = new Set();
+        for(let i=0;i<state.players;i++){
+          if(state.assignments[i] !== 'IMPOSTOR') continue;
+
+          const localAvoid = new Set([...avoid, ...used]);
+          let fake = pickFakeCard(state.realCard, state.difficulty, localAvoid);
+
+          if(used.has(fake)){
+            const pool = rankedCandidates(state.realCard, state.difficulty).map(x=>x.c);
+            for(const candidate of pool){
+              if(candidate !== state.realCard && !used.has(candidate) && !avoid.has(candidate)){
+                fake = candidate; break;
+              }
+            }
+          }
+
+          state.fakeCards[i] = fake;
+          used.add(fake);
+          prefetchCardImage(fake);
+        }
+      }
+    }
+
+    function beginRound(){
+      readSetup();
+
+      state.roundMode = chooseRoundMode();
+      const impCount = chooseImpostorCount(state.players);
+
+      state.realCard = pickRealCard();
+      prefetchCardImage(state.realCard);
+
+      assignRoles(impCount);
+
+      if(state.roundMode === 'dark' || state.roundMode === 'darkWild'){
+        assignFakeCardsForDarkModes();
+      } else {
+        state.fakeCards = Array(state.players).fill(null);
+      }
+
+      state.turn = 0;
+      state.revealed = false;
+      state.history = [];
+
+      state.lastReal = state.realCard;
+      state.lastFakes = new Set(state.fakeCards.filter(Boolean));
+
+      show('pass');
+      updatePassUI();
+    }
+
+    // =========================
+    // 8) PASS SCREEN RENDERING
+    // =========================
+    function modeLabel(m){
+      if(m==='clash') return 'Clash Royale Impostor';
+      if(m==='dark') return 'In the Dark';
+      if(m==='darkWild') return 'In the Dark (Wild)';
+      return 'Random Mode';
+    }
+
+    function cardForCurrentPlayer(){
+      const role = state.assignments[state.turn];
+      const isImp = role === 'IMPOSTOR';
+
+      if(state.roundMode === 'clash'){
+        if(isImp) return { text:'IMPOSTOR', color:'var(--danger)', img:'__IMPOSTOR__' };
+        return { text:state.realCard, color:'var(--text)', img:state.realCard };
+      }
+
+      if(isImp){
+        const fake = state.fakeCards[state.turn] || state.realCard;
+        return { text:fake, color:'var(--text)', img:fake };
+      }
+      return { text:state.realCard, color:'var(--text)', img:state.realCard };
+    }
+
+    function updatePassUI(){
+      el('turnInfo').textContent = `Player ${state.turn+1} / ${state.players}`;
+
+      const img = el('cardImg');
+      if(!state.revealed){
+        el('wordText').textContent = 'Tap to reveal';
+        el('wordText').style.color = 'var(--text)';
+        el('hint').textContent = 'Hand the phone to this player before tapping.';
+        el('toggleBtn').textContent = 'Reveal';
+        img.removeAttribute('src');
+        img.style.display = 'none';
+        return;
+      }
+
+      const info = cardForCurrentPlayer();
+      el('wordText').textContent = info.text;
+      el('wordText').style.color = info.color;
+
+      if(state.roundMode === 'clash' && info.text === 'IMPOSTOR' && !IMPOSTOR_IMAGE_URL){
+        img.removeAttribute('src');
+        img.style.display='none';
+      } else {
+        setCardImageByName(info.img);
+      }
+
+      if(state.turn === state.players-1){
+        el('hint').textContent = 'Last player revealed. Tap again to finish.';
+        el('toggleBtn').textContent = 'Finish Round';
+      } else {
+        el('hint').textContent = (state.roundMode === 'clash')
+          ? 'Tap Next Player and pass the phone.'
+          : 'Don’t say the card name. Describe it vaguely, then pass the phone.';
+        el('toggleBtn').textContent = 'Next Player';
+      }
+    }
+
+    function nextTurn(){
+      state.history.push({ player: state.turn+1, role: state.assignments[state.turn], shown: cardForCurrentPlayer().text });
+      state.turn++;
+      state.revealed = false;
+
+      if(state.turn >= state.players){
+        showSummary();
+        return;
+      }
+      updatePassUI();
+    }
+
+    function showSummary(){
+      show('summary');
+
+      const impPlayers = state.history.filter(h => h.role === 'IMPOSTOR').map(h => `Player ${h.player}`);
+      const impCount = impPlayers.length;
+
+      el('roundInfoPill').textContent = `${modeLabel(state.roundMode)} • Real card: ${state.realCard}`;
+
+      if(state.roundMode === 'clash'){
+        el('summaryText').innerHTML =
+          `Most players saw <b>${state.realCard}</b>. Impostors saw <b style="color:var(--danger)">IMPOSTOR</b>. Discuss clues without saying the name.`;
+      } else {
+        const uniqueFakes = [...new Set(state.fakeCards.filter(Boolean))];
+        const fakesText = uniqueFakes.length ? uniqueFakes.join(', ') : '(none)';
+        el('summaryText').innerHTML =
+          `Most players saw <b>${state.realCard}</b>. Impostors saw a <b>similar</b> card instead. Difficulty: <b>${state.difficulty}</b>.<br/><span style="color:var(--muted)">Fake card(s) used this round: ${fakesText}</span>`;
+      }
+
+      el('impostorList').classList.add('hidden');
+      el('impostorList').textContent = impCount ? `Impostors: ${impPlayers.join(', ')}` : 'Impostors: none';
+    }
+
+    // =========================
+    // 9) EVENTS
+    // =========================
+    el('modeClash').onclick = () => setMode('clash');
+    el('modeDark').onclick = () => setMode('dark');
+    el('modeDarkWild').onclick = () => setMode('darkWild');
+    el('modeRandom').onclick = () => setMode('random');
+
+    el('playersMinus').onclick = () => setPlayers(state.players - 1);
+    el('playersPlus').onclick  = () => setPlayers(state.players + 1);
+
+    el('impostorsMinus').onclick = () => { if(!state.randomImpostors) setImpostors(state.impostors - 1); };
+    el('impostorsPlus').onclick  = () => { if(!state.randomImpostors) setImpostors(state.impostors + 1); };
+
+    el('toggleRandomImps').onclick = () => setRandomImpostors(!state.randomImpostors);
+
+    el('begin').onclick = () => beginRound();
+    el('resetAllSetup').onclick = () => resetSetup();
+
+    el('toggleBtn').onclick = () => {
+      if(!state.revealed){
+        state.revealed = true;
+        updatePassUI();
+      } else {
+        nextTurn();
+      }
+    };
+
+    el('showImpostors').onclick = () => {
+      el('impostorList').classList.remove('hidden');
+    };
+
+    el('playAgain').onclick = () => show('setup');
+
+    // =========================
+    // 10) INIT
+    // =========================
+    buildCardDB();
+    resetSetup();
+  </script>
+</body>
+</html>
